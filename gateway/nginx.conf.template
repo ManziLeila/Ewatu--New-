@@ -1,0 +1,383 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    resolver 127.0.0.11 valid=30s ipv6=off;
+
+    server {
+        listen 80;
+        server_name _;
+
+        location = /health {
+            access_log off;
+            return 200 '{"status":"ok","service":"e-watu-gateway"}';
+            add_header Content-Type application/json;
+        }
+
+        location /api/v1/auth/ {
+            set $upstream http://${IDENTITY_SERVICE_HOST}:${IDENTITY_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/me {
+            set $upstream http://${IDENTITY_SERVICE_HOST}:${IDENTITY_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/users/ {
+            set $upstream http://${IDENTITY_SERVICE_HOST}:${IDENTITY_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/identity/ {
+            set $upstream http://${IDENTITY_SERVICE_HOST}:${IDENTITY_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/internal/ {
+            set $upstream http://${IDENTITY_SERVICE_HOST}:${IDENTITY_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/tenants/ {
+            set $upstream http://${PLATFORM_SERVICE_HOST}:${PLATFORM_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/onboarding/ {
+            set $upstream http://${PLATFORM_SERVICE_HOST}:${PLATFORM_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/platform/ {
+            set $upstream http://${PLATFORM_SERVICE_HOST}:${PLATFORM_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/my/ {
+            set $upstream http://${PLATFORM_SERVICE_HOST}:${PLATFORM_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/public/tenants/ {
+            set $upstream http://${PLATFORM_SERVICE_HOST}:${PLATFORM_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/jobs/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/candidates/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/applications/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/interviews/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/offers/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/placements/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/recruitment/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/public/ {
+            set $upstream http://${RECRUITMENT_SERVICE_HOST}:${RECRUITMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/document/ {
+            set $upstream http://${DOCUMENT_SERVICE_HOST}:${DOCUMENT_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            client_max_body_size 20m;
+        }
+
+        location /api/v1/notifications/ {
+            set $upstream http://${NOTIFICATION_SERVICE_HOST}:${NOTIFICATION_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/notify/ {
+            set $upstream http://${NOTIFICATION_SERVICE_HOST}:${NOTIFICATION_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/contracts/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/employees/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/payroll/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/hr/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/performance/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/outsourcing/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/permits/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/teams/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/tasks/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/hr-dashboard/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/grievances/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/attendance/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/training/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/announcements/ {
+            set $upstream http://${PAYROLL_SERVICE_HOST}:${PAYROLL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/pools/ {
+            set $upstream http://${TALENT_POOL_SERVICE_HOST}:${TALENT_POOL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/profiles/ {
+            set $upstream http://${TALENT_POOL_SERVICE_HOST}:${TALENT_POOL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/saved-searches/ {
+            set $upstream http://${TALENT_POOL_SERVICE_HOST}:${TALENT_POOL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/talent-pool {
+            set $upstream http://${TALENT_POOL_SERVICE_HOST}:${TALENT_POOL_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/v1/lending/ {
+            set $upstream http://${LENDING_SERVICE_HOST}:${LENDING_SERVICE_PORT};
+            proxy_pass $upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}

@@ -1,30 +1,31 @@
 # Build context: repo root (/)
-# NOTE: NODE_ENV is runtime-only. Do not pass as build ARG.
-# Build stage always installs devDependencies for TypeScript compilation.
+# Coolify may inject NODE_ENV=production — build stage forces development.
 FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
+ENV NODE_ENV=development
+
+# Stub root package WITHOUT workspaces (file:../.. deps need this name).
+COPY docker/package.stub.json ./package.json
 
 # Build shared library
 COPY libs/common-auth ./libs/common-auth
-RUN npm ci --prefix libs/common-auth --include=dev && \
-    npm run build --prefix libs/common-auth
+RUN npm ci --prefix libs/common-auth --include=dev --no-workspaces && \
+    node libs/common-auth/node_modules/typescript/bin/tsc -p libs/common-auth/tsconfig.json
 
 # Build service
 COPY services/recruitment-service ./services/recruitment-service
 WORKDIR /repo/services/recruitment-service
-RUN npm ci --include=dev && \
+RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
-# Remove devDependencies after build
 RUN npm prune --omit=dev
 
-# ── Production stage ─────────────────────────────────
 FROM node:20-alpine
 RUN apk add --no-cache openssl libssl3
 WORKDIR /app
-RUN apk add --no-cache openssl libssl3
 ENV NODE_ENV=production
 ENV SERVICE_NAME=recruitment-service
 
@@ -32,15 +33,12 @@ COPY --from=build /repo/libs/common-auth /libs/common-auth
 COPY --from=build /repo/services/recruitment-service/node_modules ./node_modules
 COPY --from=build /repo/services/recruitment-service/dist ./dist
 COPY --from=build /repo/services/recruitment-service/prisma ./prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/.prisma \
-     ./node_modules/.prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/@prisma \
-     ./node_modules/@prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/prisma \
-     ./node_modules/prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/@prisma ./node_modules/@prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/prisma ./node_modules/prisma
 COPY --from=build /repo/services/recruitment-service/package.json ./package.json
 
-COPY infra/docker/service-entrypoint.sh /entrypoint.sh
+COPY docker/service-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3013
