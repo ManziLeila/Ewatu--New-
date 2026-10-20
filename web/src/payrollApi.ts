@@ -1,6 +1,8 @@
-import { authFetch, parseJson } from './lib/http';
+import { apiBase, authFetch, parseJson } from './lib/http';
 
 function payrollUrl(): string {
+  const gateway = apiBase();
+  if (gateway) return gateway.replace(/\/$/, '');
   const base = import.meta.env.VITE_PAYROLL_API ?? 'http://localhost:3016';
   return base.replace(/\/$/, '');
 }
@@ -72,6 +74,9 @@ export type PayrollRun = {
   currency: string;
   submittedAt: string | null;
   finalizedAt: string | null;
+  recordCount?: number;
+  totalNetPay?: number;
+  totalGrossPay?: number;
   records?: PayrollLine[];
   approvals?: PayrollRunApproval[];
 };
@@ -94,7 +99,7 @@ export type LeaveRequest = {
   startDate: string;
   endDate: string;
   numberOfDays: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   reason: string | null;
   approvedById: string | null;
   approvedAt: string | null;
@@ -419,6 +424,23 @@ export type HrDashboardSummary = {
     approvedThisMonth: number;
     rejectedThisMonth: number;
   };
+  finance?: {
+    currency: string;
+    ytdGrossPay: number;
+    ytdNetPay: number;
+    allTimeNetPay: number;
+    avgNetPerMonth: number;
+    monthsWithData: number;
+    finalizedRunsYtd: number;
+    latestPeriod: {
+      periodYear: number;
+      periodMonth: number;
+      grossPay: number;
+      netPay: number;
+    } | null;
+    monthlyTrend: { periodYear: number; periodMonth: number; netPay: number }[];
+    estimatedMonthlyGross: number;
+  };
   payroll: {
     inProgressPeriods: {
       id: string;
@@ -656,6 +678,10 @@ export async function createEmployee(body: {
   firstName: string;
   lastName: string;
   email?: string;
+  jobTitle?: string;
+  department?: string;
+  basicSalary?: number;
+  /** @deprecated use basicSalary */
   baseSalary?: number;
   startDate?: string;
   placementId?: string;
@@ -695,6 +721,8 @@ export type EmployeeBulkImportRow = {
   department?: string;
   clientId?: string;
   basicSalary?: number;
+  rssbNumber?: string;
+  ramaEnabled?: boolean;
 };
 
 export type EmployeeBulkImportResult = {
@@ -1154,6 +1182,38 @@ export async function fetchLeaveRequests(
   return parseJson(r);
 }
 
+export async function fetchLeaveRequest(id: string): Promise<LeaveRequest> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/${id}`);
+  return r.data as LeaveRequest;
+}
+
+export async function updateLeaveRequest(
+  id: string,
+  body: {
+    leaveTypeId: string;
+    startDate: string;
+    endDate: string;
+    days?: number;
+    reason?: string;
+    delegateToEmployeeId?: string;
+    emergencyContactPhone?: string;
+  },
+): Promise<LeaveRequest> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return r.data as LeaveRequest;
+}
+
+export async function cancelLeaveRequest(id: string, reason: string): Promise<LeaveRequest> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  return r.data as LeaveRequest;
+}
+
 export async function createLeaveRequest(body: {
   employeeId: string;
   leaveTypeId: string;
@@ -1330,32 +1390,32 @@ export async function fetchPeriods(params?: Record<string, string | number | und
         }, {}),
       )}`
     : '';
-  const r = await payrollFetch(`/api/v1/payroll/periods${query}`);
+  const r = await payrollFetch(`/api/v1/payroll/runs${query}`);
   return parseJson(r);
 }
 
 export async function fetchPeriod(id: string) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}`);
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}`);
   return parseJson(r);
 }
 
 export async function createPeriod(data: Record<string, unknown>) {
-  const r = await payrollFetch('/api/v1/payroll/periods', { method: 'POST', body: JSON.stringify(data) });
+  const r = await payrollFetch('/api/v1/payroll/runs', { method: 'POST', body: JSON.stringify(data) });
   return parseJson(r);
 }
 
 export async function runPayroll(id: string) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}/run`, { method: 'POST', body: JSON.stringify({}) });
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/run`, { method: 'POST', body: JSON.stringify({}) });
   return parseJson(r);
 }
 
 export async function submitPayroll(id: string) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}/submit`, { method: 'POST', body: JSON.stringify({}) });
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/submit`, { method: 'POST', body: JSON.stringify({}) });
   return parseJson(r);
 }
 
 export async function approvePayroll(id: string, data?: Record<string, unknown>) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}/approve`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/approve`, {
     method: 'POST',
     body: JSON.stringify(data ?? {}),
   });
@@ -1363,7 +1423,7 @@ export async function approvePayroll(id: string, data?: Record<string, unknown>)
 }
 
 export async function rejectPayroll(id: string, comments?: string) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}/reject`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/reject`, {
     method: 'POST',
     body: JSON.stringify({ comments }),
   });
@@ -1371,7 +1431,7 @@ export async function rejectPayroll(id: string, comments?: string) {
 }
 
 export async function finalizePayroll(id: string) {
-  const r = await payrollFetch(`/api/v1/payroll/periods/${id}/finalize`, { method: 'POST', body: JSON.stringify({}) });
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/finalize`, { method: 'POST', body: JSON.stringify({}) });
   return parseJson(r);
 }
 

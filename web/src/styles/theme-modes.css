@@ -1,0 +1,81 @@
+/*
+  Light vs dark shell tokens. Shared brand primitives stay in brand.css :root.
+  html.dark is toggled by lib/app-preferences.tsx (Theme toggle).
+*/
+
+:root,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --surface: color-mix(in srgb, var(--color-neutral-50) 82%, var(--color-primary-light) 18%);
+  --surface-alt: var(--color-neutral-100);
+  --card: var(--color-surface-light);
+  --card-sub: color-mix(in srgb, var(--color-neutral-50) 90%, var(--color-primary-light) 10%);
+  --line: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
+  --line-strong: color-mix(in srgb, var(--color-neutral-900) 14%, transparent);
+
+  --ink: var(--tenant-text, var(--color-body-text));
+  --ink-muted: color-mix(in srgb, var(--color-body-text) 72%, var(--color-neutral-500) 28%);
+  --ink-subtle: var(--color-neutral-500);
+
+  --sidebar-deep: color-mix(in srgb, var(--color-primary-darker) 88%, black 12%);
+  --sidebar-mid: color-mix(in srgb, var(--color-primary-dark) 55%, var(--color-primary) 45%);
+
+  --hero-deep: var(--color-primary);
+  --hero-mid: var(--color-primary-mid);
+
+  --glass-bg: color-mix(in srgb, var(--color-surface-light) 88%, transparent);
+  --glass-border: color-mix(in srgb, var(--color-neutral-900) 8%, transparent);
+}
+
+html.dark,
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --shell-brand-base: color-mix(
+    in srgb,
+    var(--color-primary) 36%,
+    var(--color-primary-darker) 64%
+  );
+  --shell-brand-card: color-mix(
+    in srgb,
+    var(--color-primary-dark) 52%,
+    var(--color-neutral-900) 48%
+  );
+  --surface: color-mix(
+    in srgb,
+    var(--tenant-background, var(--shell-brand-base)) 22%,
+    var(--shell-brand-base) 78%
+  );
+  --surface-alt: color-mix(in srgb, var(--surface) 82%, var(--color-primary-mid) 18%);
+  --card: color-mix(
+    in srgb,
+    var(--shell-brand-card) 88%,
+    var(--tenant-background, transparent) 12%
+  );
+  --card-sub: color-mix(in srgb, var(--card) 88%, var(--color-primary-mid) 12%);
+  --line: color-mix(in srgb, var(--tenant-text, var(--color-neutral-50)) 9%, transparent);
+  --line-strong: color-mix(in srgb, var(--tenant-text, var(--color-neutral-50)) 16%, transparent);
+
+  /* Body text stays light in dark mode — tenant textColor is for light surfaces only */
+  --ink: var(--color-neutral-50);
+  --ink-muted: color-mix(in srgb, var(--color-neutral-50) 72%, var(--color-neutral-400) 28%);
+  --ink-subtle: color-mix(in srgb, var(--color-neutral-50) 52%, var(--color-neutral-400) 48%);
+  --color-heading: var(--ink);
+  --color-body-text: var(--ink);
+
+  --sidebar-deep: color-mix(in srgb, var(--color-primary-darker) 78%, black 22%);
+  --sidebar-mid: color-mix(in srgb, var(--color-primary-dark) 65%, var(--color-primary) 35%);
+
+  --hero-deep: var(--color-primary-darker);
+  --hero-mid: color-mix(in srgb, var(--color-primary-dark) 55%, var(--color-neutral-950) 45%);
+
+  --glass-bg: color-mix(in srgb, var(--color-neutral-800) 75%, transparent);
+  --glass-border: color-mix(in srgb, white 10%, transparent);
+
+  /* Module workspace (payroll dashboard, bulk upload, etc.) */
+  --workspace: color-mix(in srgb, var(--surface) 90%, var(--color-primary-darker) 10%);
+  --workspace-foreground: var(--ink);
+  --workspace-card: color-mix(in srgb, var(--card) 92%, var(--color-primary-dark) 8%);
+  --workspace-muted: color-mix(in srgb, var(--surface-alt) 85%, var(--color-primary-mid) 15%);
+}

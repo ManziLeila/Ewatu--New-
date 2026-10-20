@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { fetchMe } from '../../api';
 import {
   approvePayrollStage,
   emailPayslips,
@@ -13,16 +14,20 @@ import {
   type PayrollRun,
 } from '../../payrollApi';
 import { parseApiError } from '../../lib/parseApiError';
-
-const NEXT_APPROVER_BY_STATUS: Record<string, string> = {
-  SUBMITTED: 'HR_MANAGER',
-  HR_APPROVED: 'MD',
-  MD_APPROVED: 'CLIENT_ADMIN',
-};
+import {
+  PAYROLL_STAGE_ORDER,
+  canApprovePayrollRun,
+  canFinalizePayrollRun,
+  canRejectPayrollRun,
+  canSubmitPayrollRun,
+  pendingActorLabel,
+  stageLabelForStatus,
+} from '../../lib/payrollApproval';
 
 export function PayrollRunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const [run, setRun] = useState<PayrollRun | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,6 +51,12 @@ export function PayrollRunDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    fetchMe()
+      .then((me) => setRoles(me.roles))
+      .catch(() => setRoles([]));
+  }, []);
 
   const act = async (fn: () => Promise<PayrollRun>) => {
     setBusy(true);
@@ -79,8 +90,19 @@ export function PayrollRunDetailPage() {
   if (loading) return <div className="rec-page"><p className="muted">Loading run…</p></div>;
   if (!run) return <div className="rec-page"><p className="alert alert--err">{err ?? 'Run not found'}</p></div>;
 
-  const nextApproverRole = NEXT_APPROVER_BY_STATUS[run.status];
   const editable = run.status === 'DRAFT';
+  const showApprove = canApprovePayrollRun(roles, run.status);
+  const showReject = canRejectPayrollRun(roles, run.status);
+  const showSubmit = canSubmitPayrollRun(roles, run.status);
+  const showFinalize = canFinalizePayrollRun(roles, run.status, run.clientId);
+
+  const promptComment = (action: 'approve' | 'reject') => {
+    const note = window.prompt(
+      action === 'approve' ? 'Approval comment (optional):' : 'Rejection reason (recommended):',
+      '',
+    );
+    return note ?? '';
+  };
 
   return (
     <div className="rec-page">
@@ -88,7 +110,12 @@ export function PayrollRunDetailPage() {
         <div>
           <p className="muted small"><Link to="/payroll/runs">Runs</Link> / {run.periodYear}-{String(run.periodMonth).padStart(2, '0')}</p>
           <h1 className="rec-page__title">Payroll run</h1>
-          <p className="rec-page__sub">Status: {run.status}</p>
+          <p className="rec-page__sub">
+            {stageLabelForStatus(run.status)}
+            {run.status !== 'FINALIZED' && (
+              <> · Next: {pendingActorLabel(run.status, run.clientId)}</>
+            )}
+          </p>
         </div>
         <div className="rec-page__actions">
           {editable && (
@@ -96,17 +123,39 @@ export function PayrollRunDetailPage() {
               Recalculate
             </button>
           )}
-          {run.status === 'DRAFT' && (
-            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => submitPayrollRun(run.id))}>Submit for approval</button>
+          {showSubmit && (
+            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => submitPayrollRun(run.id))}>
+              Submit to HR
+            </button>
           )}
-          {nextApproverRole && (
-            <>
-              <button className="btn btn--primary" disabled={busy} onClick={() => act(() => approvePayrollStage(run.id, nextApproverRole))}>Approve ({nextApproverRole})</button>
-              <button className="btn btn--ghost" disabled={busy} onClick={() => act(() => rejectPayrollStage(run.id, nextApproverRole))}>Reject</button>
-            </>
+          {showApprove && (
+            <button
+              className="btn btn--primary"
+              disabled={busy}
+              onClick={() => {
+                const note = promptComment('approve');
+                act(() => approvePayrollStage(run.id, run.status, note));
+              }}
+            >
+              Approve
+            </button>
           )}
-          {run.status === 'CLIENT_APPROVED' && (
-            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => lockPayrollRun(run.id))}>Finalize run</button>
+          {showReject && (
+            <button
+              className="btn btn--ghost"
+              disabled={busy}
+              onClick={() => {
+                const note = promptComment('reject');
+                act(() => rejectPayrollStage(run.id, run.status, note));
+              }}
+            >
+              Reject
+            </button>
+          )}
+          {showFinalize && (
+            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => lockPayrollRun(run.id))}>
+              Finalize & generate payslips
+            </button>
           )}
           {run.status === 'FINALIZED' && (
             <button
@@ -133,6 +182,26 @@ export function PayrollRunDetailPage() {
       </div>
 
       {err && <div className="alert alert--err">{err}</div>}
+
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.15rem' }}>
+        <h2 className="rec-form-card__title" style={{ marginTop: 0, fontSize: '0.95rem' }}>
+          Approval workflow
+        </h2>
+        <ol style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.8, fontSize: '0.88rem' }}>
+          {PAYROLL_STAGE_ORDER.map((step) => {
+            const idx = PAYROLL_STAGE_ORDER.findIndex((s) => s.status === run.status);
+            const stepIdx = PAYROLL_STAGE_ORDER.findIndex((s) => s.status === step.status);
+            const done = stepIdx < idx || run.status === 'FINALIZED';
+            const current = step.status === run.status;
+            return (
+              <li key={step.status} style={{ color: current ? 'var(--brand)' : done ? 'var(--ink-muted)' : undefined }}>
+                <strong>{step.label}</strong>
+                {current ? ' (current)' : done ? ' ✓' : ''}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
 
       <div className="rec-table-wrap">
         <table className="rec-table">

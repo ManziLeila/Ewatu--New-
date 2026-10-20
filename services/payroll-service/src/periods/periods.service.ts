@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { calculatePayroll } from '../calculation/payroll.calculator';
 import { dispatchNotification } from '../common/notification.dispatch';
+import { notifyTenantRoles } from '../common/payroll-notify';
 import { PayslipService } from '../payslip/payslip.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApprovePeriodDto } from './dto/approve-period.dto';
@@ -34,16 +35,45 @@ export class PeriodsService {
     return created;
   }
 
-  findAll(tenantId: string, query: Record<string, string | undefined>) {
-    return this.prisma.payrollPeriod.findMany({
+  async findAll(tenantId: string, query: Record<string, string | undefined>) {
+    const periods = await this.prisma.payrollPeriod.findMany({
       where: {
         tenantId,
         ...(query.clientId ? { clientId: query.clientId } : {}),
         ...(query.status ? { status: query.status as any } : {}),
         ...(query.periodYear ? { periodYear: Number.parseInt(query.periodYear, 10) } : {}),
+        ...(query.periodMonth ? { periodMonth: Number.parseInt(query.periodMonth, 10) } : {}),
       },
       include: { _count: { select: { records: true } } },
       orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }],
+    });
+    if (periods.length === 0) return [];
+
+    const aggregates = await this.prisma.payrollRecord.groupBy({
+      by: ['periodId'],
+      where: { tenantId, periodId: { in: periods.map((p) => p.id) } },
+      _sum: { netPay: true, grossPay: true },
+      _count: { _all: true },
+    });
+    const byPeriod = new Map(
+      aggregates.map((a) => [
+        a.periodId,
+        {
+          recordCount: a._count._all,
+          totalNetPay: Number(a._sum.netPay ?? 0),
+          totalGrossPay: Number(a._sum.grossPay ?? 0),
+        },
+      ]),
+    );
+
+    return periods.map((p) => {
+      const agg = byPeriod.get(p.id);
+      return {
+        ...p,
+        recordCount: agg?.recordCount ?? p._count.records,
+        totalNetPay: agg?.totalNetPay ?? 0,
+        totalGrossPay: agg?.totalGrossPay ?? 0,
+      };
     });
   }
 
@@ -80,7 +110,13 @@ export class PeriodsService {
       );
     }
     const employees = await this.prisma.employee.findMany({
-      where: { tenantId, clientId: period.clientId, employmentStatus: 'ACTIVE' },
+      where: {
+        tenantId,
+        employmentStatus: 'ACTIVE',
+        ...(period.clientId === 'default'
+          ? { OR: [{ clientId: period.clientId }, { clientId: null }] }
+          : { clientId: period.clientId }),
+      },
     });
     for (const employee of employees) {
       const result = calculatePayroll(
@@ -90,6 +126,7 @@ export class PeriodsService {
           transportAllowance: Number(employee.transportAllowance),
           otherAllowances: Number(employee.otherAllowances),
           otherDeductions: 0,
+          includeRama: employee.ramaEnabled,
         },
         {
           payeEnabled: config.payeEnabled,
@@ -98,6 +135,7 @@ export class PeriodsService {
           rssbMedical: Number(config.rssbMedical),
           cbhiRate: Number(config.cbhiRate),
           maternityLevy: Number(config.maternityLevy),
+          occupationalHazardRate: Number(config.occupationalHazardRate ?? 0.02),
         },
       );
 
@@ -145,35 +183,46 @@ export class PeriodsService {
       payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear },
     });
 
-    void dispatchNotification('payroll-submitted', {
+    void notifyTenantRoles(tenantId, ['HR_MANAGER'], 'payroll-submitted', {
       periodId: updated.id,
       clientId: updated.clientId,
-      tenantId,
-      month: updated.periodMonth,
-      year: updated.periodYear,
+      periodMonth: updated.periodMonth,
+      periodYear: updated.periodYear,
+      stage: 'HR review',
     });
     return updated;
   }
 
-  async approve(tenantId: string, periodId: string, userId: string, userRole: string, dto: ApprovePeriodDto) {
+  async approve(tenantId: string, periodId: string, userId: string, roles: string[], dto: ApprovePeriodDto) {
     const period = await this.prisma.payrollPeriod.findFirst({ where: { id: periodId, tenantId } });
     if (!period) throw new NotFoundException('Payroll period not found');
     let statusUpdate: Record<string, unknown> = {};
     let approverRole: 'HR_MANAGER' | 'MD' | 'CLIENT_ADMIN';
     let notifyType = '';
+    let notifyRoles: string[] = [];
 
-    if (userRole === 'HR_MANAGER' && period.status === 'SUBMITTED') {
+    if (period.status === 'SUBMITTED' && roles.includes('HR_MANAGER')) {
       statusUpdate = { status: 'HR_APPROVED', hrApprovedAt: new Date(), hrApprovedBy: userId };
       approverRole = 'HR_MANAGER';
       notifyType = 'payroll-hr-approved';
-    } else if (userRole === 'TENANT_ADMIN' && period.status === 'HR_APPROVED') {
+      notifyRoles = ['MANAGING_DIRECTOR', 'TENANT_ADMIN'];
+    } else if (
+      period.status === 'HR_APPROVED' &&
+      (roles.includes('MANAGING_DIRECTOR') || roles.includes('TENANT_ADMIN'))
+    ) {
       statusUpdate = { status: 'MD_APPROVED', mdApprovedAt: new Date(), mdApprovedBy: userId };
       approverRole = 'MD';
       notifyType = 'payroll-md-approved';
-    } else if (userRole === 'CLIENT_ADMIN' && period.status === 'MD_APPROVED') {
+      if (period.clientId === 'default') {
+        notifyRoles = ['FINANCE_OFFICER', 'TENANT_ADMIN'];
+      } else {
+        notifyRoles = ['CLIENT_ADMIN'];
+      }
+    } else if (period.status === 'MD_APPROVED' && roles.includes('CLIENT_ADMIN')) {
       statusUpdate = { status: 'CLIENT_APPROVED', clientApprovedAt: new Date(), clientApprovedBy: userId };
       approverRole = 'CLIENT_ADMIN';
       notifyType = 'payroll-client-approved';
+      notifyRoles = ['FINANCE_OFFICER', 'TENANT_ADMIN'];
     } else {
       throw new ForbiddenException('Invalid approval role for current period status');
     }
@@ -197,20 +246,37 @@ export class PeriodsService {
       resourceId: periodId,
       payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear, action: 'APPROVED', approverRole },
     });
-    void dispatchNotification(notifyType, { tenantId, periodId, comments: dto.comments });
+    void notifyTenantRoles(tenantId, notifyRoles, notifyType, {
+      periodId,
+      periodMonth: updated.periodMonth,
+      periodYear: updated.periodYear,
+      clientId: updated.clientId,
+      comments: dto.comments,
+      stage: approverRole,
+    });
     return updated;
   }
 
-  async reject(tenantId: string, periodId: string, userId: string, userRole: string, dto: ApprovePeriodDto) {
+  async reject(tenantId: string, periodId: string, userId: string, roles: string[], dto: ApprovePeriodDto) {
     const period = await this.prisma.payrollPeriod.findFirst({ where: { id: periodId, tenantId } });
     if (!period) throw new NotFoundException('Payroll period not found');
-    if (!['HR_MANAGER', 'TENANT_ADMIN', 'CLIENT_ADMIN'].includes(userRole)) {
-      throw new ForbiddenException('User role cannot reject this period');
+    const canReject =
+      (period.status === 'SUBMITTED' && roles.includes('HR_MANAGER')) ||
+      (period.status === 'HR_APPROVED' &&
+        (roles.includes('MANAGING_DIRECTOR') || roles.includes('TENANT_ADMIN'))) ||
+      (period.status === 'MD_APPROVED' && roles.includes('CLIENT_ADMIN'));
+    if (!canReject) {
+      throw new ForbiddenException('User role cannot reject this period at the current stage');
     }
     if (!['SUBMITTED', 'HR_APPROVED', 'MD_APPROVED', 'CLIENT_APPROVED'].includes(period.status)) {
       throw new BadRequestException('Period cannot be rejected at this stage');
     }
-    const role = userRole === 'TENANT_ADMIN' ? 'MD' : (userRole as 'HR_MANAGER' | 'CLIENT_ADMIN');
+    const role =
+      period.status === 'SUBMITTED'
+        ? 'HR_MANAGER'
+        : period.status === 'HR_APPROVED'
+          ? 'MD'
+          : 'CLIENT_ADMIN';
     const updated = await this.prisma.payrollPeriod.update({
       where: { id: periodId },
       data: { status: 'DRAFT' },
@@ -233,7 +299,12 @@ export class PeriodsService {
       resourceId: periodId,
       payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear, action: 'REJECTED', rejecterRole: role },
     });
-    void dispatchNotification('payroll-rejected', { tenantId, periodId, comments: dto.comments });
+    void notifyTenantRoles(tenantId, ['FINANCE_OFFICER', 'TENANT_ADMIN'], 'payroll-rejected', {
+      periodId,
+      periodMonth: updated.periodMonth,
+      periodYear: updated.periodYear,
+      comments: dto.comments,
+    });
     return updated;
   }
 
@@ -243,8 +314,13 @@ export class PeriodsService {
       include: { records: { include: { employee: true } } },
     });
     if (!period) throw new NotFoundException('Payroll period not found');
-    if (period.status !== 'CLIENT_APPROVED') {
-      throw new BadRequestException('Only client-approved periods can be finalized');
+    const readyToFinalize =
+      period.status === 'CLIENT_APPROVED' ||
+      (period.status === 'MD_APPROVED' && period.clientId === 'default');
+    if (!readyToFinalize) {
+      throw new BadRequestException(
+        'Period must be fully approved before finalize (client sign-off required for external clients)',
+      );
     }
     const finalized = await this.prisma.payrollPeriod.update({
       where: { id: periodId },

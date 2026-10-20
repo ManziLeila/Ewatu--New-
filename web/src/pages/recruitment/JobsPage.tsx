@@ -545,39 +545,45 @@ export function JobsPage() {
                   )}
                 </div>
               )}
-              <div className="rec-job-card__footer">
-                <div>
+              {(job.salaryMin || job.salaryMax || job.deadline) && (
+                <div className="rec-job-card__details">
                   {(job.salaryMin || job.salaryMax) && (
-                    <span className="muted small">
+                    <span>
                       {job.salaryMin && job.salaryMax
                         ? `${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()} ${job.currency}`
                         : job.salaryMin
-                        ? `From ${job.salaryMin.toLocaleString()} ${job.currency}`
-                        : `Up to ${job.salaryMax!.toLocaleString()} ${job.currency}`}
+                          ? `From ${job.salaryMin.toLocaleString()} ${job.currency}`
+                          : `Up to ${job.salaryMax!.toLocaleString()} ${job.currency}`}
                     </span>
                   )}
                   {job.deadline && (
-                    <span className="muted small"> · Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+                    <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
                   )}
                 </div>
-                <span className="muted small">Headcount: {job.headcount}</span>
-              </div>
-              <div className="rec-job-card__footer" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <Link to={`/recruitment/jobs/${job.id}`} className="btn btn--primary small">Pipeline</Link>
-                <button type="button" className="btn btn--ghost small" onClick={() => startEdit(job)}>Edit</button>
-                {job.status === 'DRAFT' && (
-                  <button
-                    type="button"
-                    className="btn btn--ghost small"
-                    onClick={async () => {
-                      if (!confirm('Delete this draft job?')) return;
-                      await deleteJob(job.id);
-                      await load();
-                    }}
-                  >
-                    Delete
+              )}
+              <div className="rec-job-card__actions">
+                <Link to={`/recruitment/jobs/${job.id}`} className="btn btn--primary small">
+                  Pipeline
+                </Link>
+                <div className="rec-job-card__actions-end">
+                  <span className="muted small">Headcount: {job.headcount}</span>
+                  <button type="button" className="btn btn--ghost small" onClick={() => startEdit(job)}>
+                    Edit
                   </button>
-                )}
+                  {job.status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost small"
+                      onClick={async () => {
+                        if (!confirm('Delete this draft job?')) return;
+                        await deleteJob(job.id);
+                        await load();
+                      }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

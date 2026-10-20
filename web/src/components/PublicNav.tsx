@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ThemeToggle } from './app/ThemeToggle';
+import { useAppPreferences } from '../lib/app-preferences';
 import { useAuthLoggedIn } from '../hooks/useAuthLoggedIn';
 
 type PublicNavProps = {
@@ -110,9 +112,10 @@ function NavDropdown({ item }: { item: NavItem }) {
   );
 }
 
-export function PublicNav({ variant = 'dark' }: PublicNavProps) {
+export function PublicNav({ variant }: PublicNavProps) {
   const loggedIn = useAuthLoggedIn();
-  const isLight = variant === 'light';
+  const { resolvedTheme } = useAppPreferences();
+  const isLight = variant ? variant === 'light' : resolvedTheme === 'light';
 
   return (
     <header className={`pnav${isLight ? ' pnav--light' : ' pnav--dark'}`}>
@@ -136,6 +139,7 @@ export function PublicNav({ variant = 'dark' }: PublicNavProps) {
       </nav>
 
       <div className="pnav__actions">
+        <ThemeToggle variant="adm" className="pnav__theme-toggle" />
         {loggedIn ? (
           <Link to="/platform" className="pnav__btn pnav__btn--primary">
             Dashboard

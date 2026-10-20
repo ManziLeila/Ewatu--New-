@@ -17,11 +17,15 @@ export const ROLE_DESCRIPTIONS: Record<string, { label: string; desc: string }> 
   },
   TENANT_ADMIN: {
     label: 'Company Admin',
-    desc: 'Full workspace administrative control and user creation',
+    desc: 'Workspace setup, users, branding, and settings — not HR operations or executive financial overview',
   },
   MANAGING_DIRECTOR: {
-    label: 'Managing Director',
-    desc: 'Executive oversight — approves Team KPIs and other cross-department decisions',
+    label: 'Managing Director / CEO',
+    desc: 'Executive overview — company-wide payroll cost, headcount, and leadership approvals',
+  },
+  CFO: {
+    label: 'CFO',
+    desc: 'Executive financial view — payroll cost, approvals, and board-ready summaries',
   },
 };
 

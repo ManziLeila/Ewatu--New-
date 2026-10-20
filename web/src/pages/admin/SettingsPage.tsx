@@ -9,7 +9,7 @@ type ColorField = 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroun
 
 const COLOR_FIELDS: { key: ColorField; label: string; hint: string; fallback: string }[] = [
   { key: 'primaryColor', label: 'Primary', hint: 'Main buttons & highlights', fallback: '#00466c' },
-  { key: 'secondaryColor', label: 'Secondary', hint: 'Table headers & secondary accents', fallback: '#005a8a' },
+  { key: 'secondaryColor', label: 'Secondary', hint: 'Highlights & secondary accents (orange)', fallback: '#f5911e' },
   { key: 'accentColor', label: 'Accent', hint: 'Call-to-action buttons & focus states', fallback: '#f5911e' },
   { key: 'backgroundColor', label: 'Background', hint: 'App background & card surfaces', fallback: '#070c18' },
   { key: 'textColor', label: 'Text', hint: 'Main text color', fallback: '#f8fafc' },

@@ -1,19 +1,18 @@
+@import '../styles/landing-theme.css';
+
 /* ── Landing page shell (brand tokens in styles/brand.css) ── */
 .landing {
   min-height: 100vh;
-  background: #fff;
-  color: #0c1222;
+  background: var(--lp-bg);
+  color: var(--lp-text);
 }
 
 /* ── Hero ── */
 .landing-hero {
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 80% 60% at 70% 0%, rgba(0, 70, 108, 0.09), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(245, 145, 30, 0.07), transparent 50%),
-    linear-gradient(180deg, #f8fafc 0%, #fff 100%);
-  border-bottom: 1px solid #e8edf2;
+  background: var(--lp-hero-bg);
+  border-bottom: 1px solid var(--lp-border);
 }
 
 .landing-hero__inner {
@@ -32,7 +31,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--brand);
+  color: var(--lp-eyebrow, var(--brand));
 }
 
 .landing-hero__title {
@@ -41,11 +40,11 @@
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: -0.03em;
-  color: #0c1222;
+  color: var(--lp-text-heading);
 }
 
 .landing-hero__title-accent {
-  color: var(--brand);
+  color: var(--lp-brand-accent, var(--brand));
 }
 
 .landing-hero__desc {
@@ -53,7 +52,7 @@
   margin: 1.25rem 0 2rem;
   font-size: 1.0625rem;
   line-height: 1.7;
-  color: #64748b;
+  color: var(--lp-text-muted);
 }
 
 .landing-hero__ctas {
@@ -99,14 +98,14 @@
 }
 
 .landing-hero__btn--ghost {
-  border-color: #cbd5e1;
-  background: #fff;
-  color: #0c1222;
+  border-color: var(--lp-ghost-btn-border);
+  background: var(--lp-ghost-btn-bg);
+  color: var(--lp-text);
 }
 
 .landing-hero__btn--ghost:hover {
-  border-color: var(--brand);
-  color: var(--brand);
+  border-color: var(--lp-brand-accent, var(--brand));
+  color: var(--lp-brand-accent, var(--brand));
 }
 
 .landing-hero__checks {
@@ -122,8 +121,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #475569;
+  font-size: 0.9375rem;
+  color: var(--lp-check-text, #475569);
 }
 
 .landing-hero__checks li::before {
@@ -148,7 +147,7 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--lp-text-subtle, #94a3b8);
   text-align: center;
 }
 
@@ -175,6 +174,7 @@
   width: 100%;
   max-width: 520px;
   margin: 0 auto;
+  --preview-brand-light: var(--lp-preview-brand-light, color-mix(in srgb, var(--color-primary) 14%, white 86%));
 }
 
 .erp-preview__glow {
@@ -279,8 +279,8 @@
 }
 
 .erp-preview__nav-item--active {
-  background: var(--brand-light);
-  color: var(--brand);
+  background: var(--preview-brand-light);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -413,8 +413,8 @@
 .erp-preview__list-stage {
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  background: var(--brand-light);
-  color: var(--brand);
+  background: var(--preview-brand-light);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -456,9 +456,9 @@
 }
 
 .erp-preview__chip--blue {
-  color: var(--brand);
+  color: var(--color-primary);
   border-color: #b3d0e8;
-  background: var(--brand-light);
+  background: var(--preview-brand-light);
 }
 
 @media (max-width: 960px) {
@@ -505,15 +505,15 @@
 
 .ls-section {
   padding: 5rem 1.5rem;
-  background: #fff;
+  background: var(--lp-bg);
 }
 
 .ls-section--alt {
-  background: #f8fafc;
+  background: var(--lp-bg-alt);
 }
 
 .ls-section--dark {
-  background: linear-gradient(160deg, var(--brand-dark) 0%, #001a28 100%);
+  background: linear-gradient(160deg, var(--brand-dark) 0%, var(--color-primary-darker) 100%);
   color: #fff;
 }
 
@@ -552,7 +552,7 @@
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: #0c1222;
+  color: var(--lp-text-heading);
 }
 
 .ls-section-title--light {
@@ -561,7 +561,7 @@
 
 .ls-section-sub {
   margin: 0;
-  color: #64748b;
+  color: var(--lp-text-muted);
   font-size: 1.0625rem;
   line-height: 1.65;
 }
@@ -1240,9 +1240,9 @@
 
 .hr-showcase {
   padding: 5rem 1.5rem;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border-top: 1px solid #e8edf2;
-  border-bottom: 1px solid #e8edf2;
+  background: linear-gradient(180deg, var(--lp-bg) 0%, var(--lp-bg-alt) 100%);
+  border-top: 1px solid var(--lp-border);
+  border-bottom: 1px solid var(--lp-border);
 }
 
 .hr-showcase__container {
@@ -1261,7 +1261,7 @@
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.03em;
-  color: #0f172a;
+  color: var(--lp-text-heading, #0f172a);
 }
 
 .hr-showcase__subtitle {
@@ -1397,7 +1397,7 @@
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: #0f766e;
+  background: var(--color-primary);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1445,13 +1445,13 @@
 
 .hr-emp-pill:hover {
   background: #f8fafc;
-  border-color: #0f766e;
-  color: #0f766e;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .hr-emp-pill--active {
-  background: #0f766e;
-  border-color: #0f766e;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #ffffff;
 }
 
@@ -1656,6 +1656,6 @@
 .hr-payroll-total__val {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #0f766e;
+  color: var(--color-primary);
 }
 

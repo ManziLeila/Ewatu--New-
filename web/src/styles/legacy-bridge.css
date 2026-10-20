@@ -1,0 +1,56 @@
+/*
+  Maps legacy class names (.btn, .card, .alert, …) to semantic tokens so existing
+  pages inherit the unified theme without a one-shot rewrite.
+*/
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-base font-medium transition-colors;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn--primary {
+    @apply bg-primary text-primary-foreground hover:opacity-90;
+  }
+
+  .btn--ghost {
+    @apply border border-border bg-transparent text-foreground hover:bg-muted;
+  }
+
+  .btn--sm {
+    @apply h-8 px-3 text-xs;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm;
+  }
+
+  .alert {
+    @apply rounded-lg border px-4 py-3 text-sm;
+  }
+
+  .alert--err {
+    @apply border-destructive/40 bg-destructive/10 text-destructive-foreground;
+  }
+
+  .alert--ok {
+    @apply border-success/40 bg-success/10 text-success-foreground;
+  }
+
+  .muted {
+    @apply text-muted-foreground;
+  }
+
+  .auth-input,
+  .rec-form input[type='text'],
+  .rec-form input[type='email'],
+  .rec-form input[type='password'],
+  .rec-form input[type='number'],
+  .rec-form input[type='date'],
+  .rec-form select,
+  .rec-form textarea {
+    @apply w-full rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+}

@@ -8,10 +8,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <title>E-Watu HR operations platform</title>
+    <script>
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('ewatu.app.preferences') || '{}');
+          var mode = stored.theme || 'dark';
+          var useDark =
+            mode === 'dark' ||
+            (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', useDark);
+          document.documentElement.dataset.theme = useDark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

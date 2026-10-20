@@ -15,6 +15,8 @@ import {
   CurrentUser,
   EwatuRole,
   JwtAuthGuard,
+  ModuleGuard,
+  RequiresModule,
   Roles,
   RolesGuard,
 } from '@ewatu/common-auth';
@@ -29,7 +31,8 @@ export class BulkImportEmployeesDto {
 }
 
 @Controller('employees')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
+@RequiresModule('hr-employee')
 export class EmployeesController {
   constructor(private readonly employees: EmployeesService) {}
 

@@ -26,6 +26,7 @@ export class PayrollConfigService {
           rssbMedical: 0.075,
           cbhiRate: 0.005,
           maternityLevy: 0.003,
+          occupationalHazardRate: 0.02,
         },
       });
     }
@@ -64,6 +65,7 @@ export class PayrollConfigService {
         rssbMedical: dto.rssbMedical ?? 0.075,
         cbhiRate: dto.cbhiRate ?? 0.005,
         maternityLevy: dto.maternityLevy ?? 0.003,
+        occupationalHazardRate: dto.occupationalHazardRate ?? 0.02,
       },
     });
   }

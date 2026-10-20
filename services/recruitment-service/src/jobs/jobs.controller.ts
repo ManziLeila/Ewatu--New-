@@ -15,6 +15,8 @@ import {
   CurrentUser,
   EwatuRole,
   JwtAuthGuard,
+  ModuleGuard,
+  RequiresModule,
   Roles,
   RolesGuard,
 } from '@ewatu/common-auth';
@@ -23,7 +25,8 @@ import { UpdateJobDto } from './dtos/update-job.dto';
 import { JobsService } from './jobs.service';
 
 @Controller('jobs')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
+@RequiresModule('recruitment')
 export class JobsController {
   constructor(private readonly jobs: JobsService) {}
 

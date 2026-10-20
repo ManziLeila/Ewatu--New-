@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
 import {
   fetchLeaveTypes,
   fetchEmployees,
   fetchMyEmployee,
   createLeaveRequest,
+  fetchLeaveRequest,
+  updateLeaveRequest,
   uploadLeaveAttachment,
   type LeaveType,
   type Employee,
@@ -26,10 +29,22 @@ function calculateWorkingDays(startDate: string, endDate: string): number {
   return count;
 }
 
+const HR_APPLY_FOR_OTHERS_ROLES = ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR'] as const;
+
+function toDateInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 export function LeaveApplyPage() {
   const navigate = useNavigate();
+  const { requestId } = useParams<{ requestId?: string }>();
+  const isEdit = Boolean(requestId);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [myEmployee, setMyEmployee] = useState<Employee | null>(null);
+  const [canApplyForOthers, setCanApplyForOthers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -50,17 +65,45 @@ export function LeaveApplyPage() {
     (async () => {
       try {
         setLoading(true);
-        const [types, matchedEmp] = await Promise.all([fetchLeaveTypes(), fetchMyEmployee()]);
+        const [types, matchedEmp, me] = await Promise.all([
+          fetchLeaveTypes(),
+          fetchMyEmployee(),
+          fetchMe().catch(() => null),
+        ]);
         setLeaveTypes(types);
-        if (matchedEmp) {
+        setMyEmployee(matchedEmp);
+        const hrApply =
+          me?.roles?.some((r) => (HR_APPLY_FOR_OTHERS_ROLES as readonly string[]).includes(r)) ?? false;
+        setCanApplyForOthers(hrApply);
+
+        if (matchedEmp && !requestId) {
           setFormData((prev) => ({ ...prev, employeeId: matchedEmp.id }));
         }
-        try {
-          // Listing all employees requires HR/admin privileges — used here only to populate
-          // the "delegate to" picker. A plain employee without that access can still submit
-          // their own request; the delegate picker just falls back to themselves alone.
-          setEmployees(await fetchEmployees());
-        } catch {
+
+        if (requestId) {
+          const existing = await fetchLeaveRequest(requestId);
+          if (existing.status !== 'PENDING') {
+            setLoadError('Only pending requests can be edited.');
+            return;
+          }
+          setFormData({
+            employeeId: existing.employeeId,
+            leaveTypeId: existing.leaveTypeId,
+            startDate: toDateInput(existing.startDate),
+            endDate: toDateInput(existing.endDate),
+            reason: existing.reason ?? '',
+            delegateToEmployeeId: existing.delegateToEmployeeId ?? '',
+            emergencyContactPhone: existing.emergencyContactPhone ?? '',
+          });
+        }
+
+        if (hrApply) {
+          try {
+            setEmployees(await fetchEmployees());
+          } catch {
+            setEmployees(matchedEmp ? [matchedEmp] : []);
+          }
+        } else {
           setEmployees(matchedEmp ? [matchedEmp] : []);
         }
       } catch (err) {
@@ -69,7 +112,7 @@ export function LeaveApplyPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [requestId]);
 
   const workingDays = calculateWorkingDays(formData.startDate, formData.endDate);
 
@@ -88,14 +131,31 @@ export function LeaveApplyPage() {
 
     try {
       setSubmitting(true);
-      const created = await createLeaveRequest({
-        employeeId: formData.employeeId,
+      const payload = {
         leaveTypeId: formData.leaveTypeId,
         startDate: formData.startDate,
         endDate: formData.endDate,
         reason: formData.reason,
         delegateToEmployeeId: formData.delegateToEmployeeId || undefined,
         emergencyContactPhone: formData.emergencyContactPhone || undefined,
+      };
+
+      if (isEdit && requestId) {
+        await updateLeaveRequest(requestId, payload);
+        if (attachment) {
+          try {
+            await uploadLeaveAttachment(requestId, attachment);
+          } catch {
+            /* non-fatal */
+          }
+        }
+        navigate('/leave/requests', { state: { updated: true } });
+        return;
+      }
+
+      const created = await createLeaveRequest({
+        employeeId: formData.employeeId,
+        ...payload,
       });
 
       if (attachment) {
@@ -126,32 +186,67 @@ export function LeaveApplyPage() {
     <div className="rec-page">
       <div className="rec-page__header">
         <div>
-          <h1 className="rec-page__title">Apply for Leave</h1>
-          <p className="muted">Submit a new time-off request for approval.</p>
+          <h1 className="rec-page__title">{isEdit ? 'Edit leave request' : 'Apply for Leave'}</h1>
+          <p className="muted">
+            {isEdit
+              ? 'Update your pending request before a manager approves it.'
+              : 'Submit a new time-off request for approval.'}
+          </p>
         </div>
       </div>
 
       {loadError && <div className="alert alert--err">{loadError}</div>}
 
+      {!loadError && !myEmployee && !canApplyForOthers && (
+        <div className="alert alert--err" role="alert">
+          We could not find an employee profile linked to your account. Ask HR to link your login email to an
+          employee record, or visit <Link to="/platform/profile">My Profile</Link>.
+        </div>
+      )}
+
       <section className="card" style={{ maxWidth: 640 }}>
         {formError && <div className="alert alert--err">{formError}</div>}
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label className="rec-form__label">Employee Profile</label>
-            <select
-              className="auth-input"
-              value={formData.employeeId}
-              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              required
+          {canApplyForOthers && !isEdit ? (
+            <div style={{ marginBottom: '1rem' }}>
+              <label className="rec-form__label">Employee (HR: apply on behalf of)</label>
+              <select
+                className="auth-input"
+                value={formData.employeeId}
+                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                required
+              >
+                <option value="">Select employee</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.firstName} {e.lastName} ({e.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : myEmployee ? (
+            <div
+              style={{
+                marginBottom: '1rem',
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--surface-2, #f1f5f9)',
+                border: '1px solid var(--border, #e2e8f0)',
+              }}
             >
-              <option value="">Select Employee</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.firstName} {e.lastName} ({e.email})
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="rec-form__label" style={{ marginBottom: '0.25rem' }}>
+                Applying as
+              </div>
+              <strong>
+                {myEmployee.firstName} {myEmployee.lastName}
+              </strong>
+              {myEmployee.email && (
+                <span className="muted" style={{ display: 'block', fontSize: '0.88rem' }}>
+                  {myEmployee.email}
+                </span>
+              )}
+            </div>
+          ) : null}
 
           <div style={{ marginBottom: '1rem' }}>
             <label className="rec-form__label">Leave Category</label>
@@ -256,8 +351,12 @@ export function LeaveApplyPage() {
             <button type="button" className="btn btn--ghost" onClick={() => navigate('/leave')}>
               Cancel
             </button>
-            <button type="submit" className="btn btn--primary" disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit Leave Request'}
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={submitting || (!canApplyForOthers && !myEmployee)}
+            >
+              {submitting ? (isEdit ? 'Saving…' : 'Submitting…') : isEdit ? 'Save changes' : 'Submit Leave Request'}
             </button>
           </div>
         </form>

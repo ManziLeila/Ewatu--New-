@@ -5,13 +5,16 @@ import {
   CurrentUser,
   EwatuRole,
   JwtAuthGuard,
+  ModuleGuard,
+  RequiresModule,
   Roles,
   RolesGuard,
 } from '@ewatu/common-auth';
 import { LeaveService } from './leave.service';
 
 @Controller('hr')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
+@RequiresModule('leave')
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {}
 
@@ -62,6 +65,54 @@ export class LeaveController {
       { status, employeeId, department, leaveTypeId, managerId, startDate, endDate, search },
       { email: user.email, roles: user.roles, permissions: user.permissions },
     );
+  }
+
+  @Get('leave-requests/:id')
+  getLeaveRequest(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.leaveService.getLeaveRequestById(user.tenant_id as string, id, {
+      email: user.email,
+      roles: user.roles,
+      permissions: user.permissions,
+    });
+  }
+
+  @Patch('leave-requests/:id')
+  updateLeaveRequest(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      leaveTypeId: string;
+      startDate: string;
+      endDate: string;
+      days?: number;
+      reason?: string;
+      delegateToEmployeeId?: string;
+      emergencyContactPhone?: string;
+    },
+  ) {
+    return this.leaveService.updateLeaveRequest(user.tenant_id as string, id, body, {
+      userId: user.sub,
+      email: user.email,
+      roles: user.roles,
+      ip: req.ip,
+    });
+  }
+
+  @Post('leave-requests/:id/cancel')
+  cancelLeaveRequest(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.leaveService.cancelLeaveRequest(user.tenant_id as string, id, body.reason, {
+      userId: user.sub,
+      email: user.email,
+      roles: user.roles,
+      ip: req.ip,
+    });
   }
 
   @Post('leave-requests')

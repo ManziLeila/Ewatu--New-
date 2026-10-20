@@ -85,6 +85,44 @@ async function main() {
   });
 
   await prisma.user.upsert({
+    where: { email: 'md@ewatu.dev' },
+    update: {
+      passwordHash,
+      emailVerified: true,
+      roles: ['MANAGING_DIRECTOR'],
+      emailVerificationToken: null,
+      ...(tenantId ? { tenantId } : {}),
+    },
+    create: {
+      email: 'md@ewatu.dev',
+      passwordHash,
+      displayName: 'Jean Mukamana (MD)',
+      roles: ['MANAGING_DIRECTOR'],
+      emailVerified: true,
+      tenantId: tenantId ?? undefined,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'finance@ewatu.dev' },
+    update: {
+      passwordHash,
+      emailVerified: true,
+      roles: ['FINANCE_OFFICER'],
+      emailVerificationToken: null,
+      ...(tenantId ? { tenantId } : {}),
+    },
+    create: {
+      email: 'finance@ewatu.dev',
+      passwordHash,
+      displayName: 'Alice Uwineza',
+      roles: ['FINANCE_OFFICER'],
+      emailVerified: true,
+      tenantId: tenantId ?? undefined,
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: 'hr.manager@ewatu.dev' },
     update: {
       passwordHash,
@@ -106,8 +144,12 @@ async function main() {
   console.log('\nDev login accounts (local only):\n');
   console.log('  Platform admin → admin@ewatu.dev / DevPassword12!');
   console.log('  Company admin  → tenant@ewatu.dev / DevPassword12!');
-  console.log('  HR manager     → hr.manager@ewatu.dev / DevPassword12! (no compensation-field access — for testing field-level masking)');
-  console.log('  Employee       → grace.mukamana@ewatu.dev / DevPassword12! (no Employee record seeded yet — create one with this email in the tenant to use the Employee Portal dashboard)');
+  console.log('  Managing Dir.  → md@ewatu.dev / DevPassword12!');
+  console.log('  HR manager     → hr.manager@ewatu.dev / DevPassword12!');
+  console.log('  Finance        → finance@ewatu.dev / DevPassword12!');
+  console.log('  Employee       → grace.mukamana@ewatu.dev / DevPassword12! (payroll employee linked after payroll seed)');
+  console.log('\n  After seeds: npm run prisma:seed --prefix services/payroll-service');
+  console.log('               npm run prisma:seed --prefix services/recruitment-service');
   if (!tenantId) {
     console.log('\n  (Run platform seed for demo-tenant to link these accounts to a company.)\n');
   } else {

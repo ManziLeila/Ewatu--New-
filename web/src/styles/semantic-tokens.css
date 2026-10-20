@@ -1,0 +1,82 @@
+/*
+  shadcn semantic tokens → E-Watu brand (tenant overrides via --tenant-* in brand.css).
+  Keep plain :root rules here (no @theme) so Tailwind does not mis-parse this file.
+*/
+
+:root {
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card-elevated: var(--card);
+  --card-foreground: var(--ink);
+  --popover: var(--card-sub);
+  --popover-foreground: var(--ink);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-on-primary);
+  --secondary: var(--surface-alt);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-alt);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--color-secondary);
+  --accent-foreground: var(--color-on-secondary);
+  --destructive: color-mix(in srgb, var(--foreground) 8%, var(--destructive-base) 92%);
+  --destructive-foreground: var(--ink);
+  --destructive-base: var(--color-error);
+  --success: color-mix(in srgb, var(--foreground) 8%, var(--success-base) 92%);
+  --success-foreground: var(--ink);
+  --success-base: var(--color-success);
+  --warning: color-mix(in srgb, var(--foreground) 10%, var(--warning-base) 90%);
+  --warning-foreground: var(--ink);
+  --warning-base: var(--color-warning);
+  --info: color-mix(in srgb, var(--foreground) 8%, var(--info-base) 92%);
+  --info-foreground: var(--ink);
+  --info-base: var(--color-info);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--color-focus-ring);
+  --radius: 0.625rem;
+  --sidebar: var(--sidebar-deep);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--color-primary);
+  --sidebar-primary-foreground: var(--color-on-primary);
+  --sidebar-accent: var(--color-secondary-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --workspace: color-mix(in srgb, var(--ink) 3%, white 97%);
+  --workspace-foreground: color-mix(in srgb, var(--tenant-background, #070c18) 92%, black 8%);
+  --workspace-card: color-mix(in srgb, white 96%, var(--brand) 4%);
+  --workspace-muted: color-mix(in srgb, var(--ink) 8%, white 92%);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--success);
+  --chart-4: var(--info);
+  --chart-5: var(--warning);
+  --density-space: 1;
+  --motion-duration: 180ms;
+}
+
+html.dark,
+html[data-theme='dark'] {
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card-elevated: var(--card);
+  --card-foreground: var(--ink);
+  --popover: var(--card-sub);
+  --popover-foreground: var(--ink);
+  --muted-foreground: var(--ink-muted);
+  --secondary: var(--surface-alt);
+  --secondary-foreground: var(--ink);
+  --workspace-foreground: var(--ink);
+  --workspace: var(--surface);
+  --workspace-card: var(--card);
+  --workspace-muted: var(--surface-alt);
+}
+
+/* color-scheme set in theme-modes.css */
+
+html[data-density='compact'] {
+  --density-space: 0.82;
+}
+
+html[data-density='compact'] .density-pad {
+  padding: calc(0.75rem * var(--density-space));
+}

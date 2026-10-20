@@ -10,6 +10,33 @@ import {
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
 import { ROLE_DESCRIPTIONS, ROLE_OPTIONS } from '../../lib/roleDescriptions';
+import { createEmployee } from '../../payrollApi';
+
+function splitDisplayName(displayName: string, email: string): { firstName: string; lastName: string } {
+  const trimmed = displayName.trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/);
+    return {
+      firstName: parts[0] ?? 'Employee',
+      lastName: parts.slice(1).join(' ') || parts[0] || 'User',
+    };
+  }
+  const local = email.split('@')[0] ?? 'employee';
+  const bits = local.split(/[._-]+/);
+  return {
+    firstName: bits[0] ? bits[0].charAt(0).toUpperCase() + bits[0].slice(1) : 'Employee',
+    lastName: bits.slice(1).join(' ') || 'Staff',
+  };
+}
+
+const EMPLOYEE_LINK_ROLES = new Set([
+  'TENANT_STAFF',
+  'HR_MANAGER',
+  'FINANCE_OFFICER',
+  'MANAGING_DIRECTOR',
+  'RECRUITER',
+  'CLIENT_EMPLOYEE',
+]);
 
 function generateStrongPassword(length = 14): string {
   const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -42,6 +69,7 @@ export function UsersPage() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['TENANT_STAFF']);
+  const [linkPayrollEmployee, setLinkPayrollEmployee] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const [createdCredentials, setCreatedCredentials] = useState<{
@@ -94,6 +122,31 @@ export function UsersPage() {
         displayName: displayName || undefined,
         roles,
       });
+
+      const needsEmployee = linkPayrollEmployee && roles.some((r) => EMPLOYEE_LINK_ROLES.has(r));
+      if (needsEmployee) {
+        const { firstName, lastName } = splitDisplayName(displayName, email);
+        try {
+          await createEmployee({
+            firstName,
+            lastName,
+            email: email.trim(),
+            jobTitle: roles.includes('HR_MANAGER')
+              ? 'HR Manager'
+              : roles.includes('MANAGING_DIRECTOR')
+                ? 'Managing Director'
+                : roles.includes('FINANCE_OFFICER')
+                  ? 'Finance Officer'
+                  : 'Employee',
+            startDate: new Date().toISOString().slice(0, 10),
+            basicSalary: 0,
+          });
+        } catch (empErr) {
+          setActionMsg(
+            `User created, but payroll employee link failed: ${empErr instanceof Error ? empErr.message : String(empErr)}`,
+          );
+        }
+      }
 
       try {
         await triggerPasswordReset(email);
@@ -300,6 +353,21 @@ export function UsersPage() {
               );
             })}
           </fieldset>
+
+          <label style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', marginTop: '1rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={linkPayrollEmployee}
+              onChange={(e) => setLinkPayrollEmployee(e.target.checked)}
+              style={{ marginTop: '0.2rem' }}
+            />
+            <span>
+              <strong>Create matching payroll employee record</strong>
+              <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                Uses the same work email so leave, payslips, and goals work after first login.
+              </div>
+            </span>
+          </label>
 
           <button type="submit" className="btn btn--primary" style={{ marginTop: '1rem' }}>
             Create Account & Generate Credentials

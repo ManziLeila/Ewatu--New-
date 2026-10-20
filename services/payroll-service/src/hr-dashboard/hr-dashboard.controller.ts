@@ -4,7 +4,14 @@ import { HrDashboardService } from './hr-dashboard.service';
 
 @Controller('hr-dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
+@Roles(
+  EwatuRole.TENANT_ADMIN,
+  EwatuRole.HR_MANAGER,
+  EwatuRole.MANAGING_DIRECTOR,
+  EwatuRole.FINANCE_OFFICER,
+  EwatuRole.PAYROLL_SPECIALIST,
+  EwatuRole.CFO,
+)
 export class HrDashboardController {
   constructor(private readonly service: HrDashboardService) {}
 

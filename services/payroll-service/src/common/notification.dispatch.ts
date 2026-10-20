@@ -8,7 +8,10 @@ const SUBJECTS: Record<string, string> = {
   'contract-expiry-60': 'Contract expiring in 60 days',
   'contract-expiry-30': 'Contract expiring in 30 days',
   'secondment-contract-expiring': 'Secondment contract expiring soon',
-  'payroll-submitted': 'Payroll run submitted for approval',
+  'payroll-submitted': 'Payroll run submitted for HR approval',
+  'payroll-hr-approved': 'Payroll run approved by HR — MD sign-off needed',
+  'payroll-md-approved': 'Payroll run approved by MD',
+  'payroll-client-approved': 'Payroll run approved by client — ready to finalize',
   'payroll-rejected': 'Payroll run rejected',
   'payroll-reminder': 'Payroll run reminder',
   'payslip-ready': 'Your payslip is ready',
@@ -33,6 +36,14 @@ function buildInAppMessage(type: string, payload: Record<string, unknown>): stri
       return `More information was requested on your leave request${payload.note ? `: ${payload.note}` : '.'}`;
     case 'permit-expiring':
       return `A work permit / visa is expiring soon.`;
+    case 'payroll-submitted':
+      return `Finance submitted payroll for ${payload.periodYear}-${payload.periodMonth}. HR review required.`;
+    case 'payroll-hr-approved':
+      return `HR approved payroll for ${payload.periodYear}-${payload.periodMonth}. Executive sign-off required.`;
+    case 'payroll-md-approved':
+      return `MD approved payroll for ${payload.periodYear}-${payload.periodMonth}.`;
+    case 'payroll-client-approved':
+      return `Client approved payroll for ${payload.periodYear}-${payload.periodMonth}. Finance may finalize.`;
     case 'payroll-approval-needed':
       return `A payroll run is waiting on your approval.`;
     case 'payroll-locked':
@@ -120,7 +131,10 @@ export async function dispatchNotification(
         : undefined;
   const subject = SUBJECTS[type] ?? 'E-Watu notification';
   const { text, html } = buildEmailBody(subject, payload);
-  const userId = await resolveUserIdByEmail(to);
+  const userId =
+    typeof payload.userId === 'string'
+      ? payload.userId
+      : await resolveUserIdByEmail(to);
 
   try {
     await fetch(`${base}/api/v1/internal/dispatch`, {

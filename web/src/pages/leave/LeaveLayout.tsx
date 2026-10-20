@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { fetchMe } from '../../api';
+import { ThemeToggle } from '../../components/app/ThemeToggle';
 import '../payroll/payroll-layout.css';
 
 const iconProps = {
@@ -151,6 +152,7 @@ export function LeaveLayout() {
         <Link to="/platform" className="payroll-topbar__back">
           Dashboard
         </Link>
+        <ThemeToggle variant="adm" />
       </header>
 
       <aside className="payroll-sidebar">

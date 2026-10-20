@@ -154,7 +154,7 @@ const trustItems = [
 export function LandingPage() {
   return (
     <div className="landing">
-      <PublicNav variant="light" />
+      <PublicNav />
 
       <section className="landing-hero">
         <div className="landing-hero__inner">

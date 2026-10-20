@@ -9,6 +9,7 @@ import { LogoutDto } from './dtos/logout.dto';
 import { RefreshDto } from './dtos/refresh.dto';
 import { RegisterDto } from './dtos/register.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { ResendVerificationDto } from './dtos/resend-verification.dto';
 import { VerifyEmailDto } from './dtos/verify-email.dto';
 
 @Controller('auth')
@@ -45,6 +46,12 @@ export class AuthController {
   @Post('verify-email')
   verifyEmail(@Body() body: VerifyEmailDto) {
     return this.auth.verifyEmail(body.token);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  @Post('resend-verification')
+  resendVerification(@Body() body: ResendVerificationDto) {
+    return this.auth.resendVerificationEmail(body.email);
   }
 
   @Post('forgot-password')

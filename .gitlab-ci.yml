@@ -53,6 +53,17 @@ default:
     - changes:
         - web/**/*
 
+.architecture-changes:
+  rules:
+    - changes:
+        - libs/module-sdk/**/*
+        - libs/common-auth/**/*
+        - scripts/check-architecture.mjs
+        - docs/**/*
+        - services/**/*
+        - package.json
+        - package-lock.json
+
 identity:build:
   stage: build
   extends: [.cache, .identity-changes]
@@ -173,3 +184,10 @@ web:lint:
     - cd web
     - npm ci
     - npm run lint
+
+architecture:check:
+  stage: lint
+  extends: [.cache, .architecture-changes]
+  script:
+    - npm ci
+    - npm run check:architecture

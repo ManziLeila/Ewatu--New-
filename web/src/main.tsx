@@ -2,7 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
-import './styles/brand.css';
+import './styles.css';
+import 'react-day-picker/style.css';
+import './pages/payroll/payroll-layout.css';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

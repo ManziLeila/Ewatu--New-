@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { fetchMe } from '../../api';
+import { hasAnyRole } from '../../lib/roles';
 import {
   fetchGoals,
   createGoal,
@@ -11,7 +13,12 @@ import {
   fetchMyEmployee,
 } from '../../payrollApi';
 
+const HR_PICKER_ROLES = ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR'] as const;
+
+type PerfOutlet = { roles?: string[]; isAdmin?: boolean; isStaffOnly?: boolean };
+
 export function PerformanceGoalsPage() {
+  const outlet = useOutletContext<PerfOutlet | undefined>();
   const [me, setMe] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -186,6 +193,9 @@ export function PerformanceGoalsPage() {
   const matchedMeEmp = employees.find((e) => e.email.toLowerCase() === me?.email?.toLowerCase());
   const isManager = selectedEmpObj && matchedMeEmp && selectedEmpObj.managerId === matchedMeEmp.id;
   const isSelf = matchedMeEmp && matchedMeEmp.id === selectedEmployeeId;
+  const roles = outlet?.roles?.length ? outlet.roles : me?.roles ?? [];
+  const canPickEmployee = hasAnyRole(roles, [...HR_PICKER_ROLES]);
+  const staffView = outlet?.isStaffOnly ?? (roles.length > 0 && !canPickEmployee);
 
   const totalWeight = goals.reduce((sum, g) => sum + Number(g.weight), 0);
 
@@ -199,31 +209,43 @@ export function PerformanceGoalsPage() {
 
   return (
     <div className="rec-page">
-      <div className="rec-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <header className="rec-page__header">
         <div>
-          <h1 className="rec-page__title">Goal Setting & KPIs</h1>
-          <p className="muted">Write goals, link templates, update progress, and coordinate manager approvals.</p>
+          <h1 className="rec-page__title">{staffView ? 'My goals' : 'Goal setting & KPIs'}</h1>
+          <p className="muted">
+            {staffView
+              ? 'Set objectives for the active cycle, track progress, and submit for manager approval.'
+              : 'Review team goals, approve submissions, and monitor cycle weighting.'}
+          </p>
         </div>
         {isSelf && (
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn--secondary" onClick={() => setShowGoalModal(true)}>
-              + Write Goal
+          <div className="rec-page__actions">
+            <button type="button" className="btn btn--secondary" onClick={() => setShowGoalModal(true)}>
+              + Write goal
             </button>
-            <button className="btn btn--primary" onClick={handleSubmitGoals} disabled={goals.length === 0}>
-              Submit to Manager
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={handleSubmitGoals}
+              disabled={goals.length === 0}
+              title={goals.length === 0 ? 'Add at least one goal first' : undefined}
+            >
+              Submit to manager
             </button>
           </div>
         )}
-      </div>
+      </header>
 
-      {error && <div className="alert alert--danger">{error}</div>}
+      {error && <div className="alert alert--err">{error}</div>}
 
-      {/* Workspace Selection Panel */}
-      <section className="card mb-6" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <section className="card perf-workspace-panel">
+        <div className={`perf-workspace-panel__grid${canPickEmployee ? '' : ' perf-workspace-panel__grid--single'}`}>
           <div>
-            <label className="rec-form__label">Appraisal Period Cycle</label>
+            <label className="rec-form__label" htmlFor="perf-cycle-select">
+              Appraisal cycle
+            </label>
             <select
+              id="perf-cycle-select"
               className="auth-input"
               value={selectedCycleId}
               onChange={(e) => setSelectedCycleId(e.target.value)}
@@ -234,41 +256,59 @@ export function PerformanceGoalsPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="rec-form__label">Employee Workspace View</label>
-            <select
-              className="auth-input"
-              value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
-            >
-              <option value="">Select employee profile</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.firstName} {e.lastName} ({e.jobTitle})
-                </option>
-              ))}
-            </select>
-          </div>
+          {canPickEmployee ? (
+            <div>
+              <label className="rec-form__label" htmlFor="perf-employee-select">
+                Employee view
+              </label>
+              <select
+                id="perf-employee-select"
+                className="auth-input"
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+              >
+                <option value="">Select employee</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.firstName} {e.lastName}
+                    {e.jobTitle ? ` · ${e.jobTitle}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : matchedMeEmp ? (
+            <div className="perf-workspace-panel__self">
+              <span className="rec-form__label">Applying as</span>
+              <strong>
+                {matchedMeEmp.firstName} {matchedMeEmp.lastName}
+              </strong>
+            </div>
+          ) : (
+            <div className="alert alert--warn" style={{ margin: 0 }}>
+              No payroll employee record is linked to your login email. Ask HR to create or link your profile.
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Goal Weights Audit Panel */}
-      <section className="card mb-6" style={{ padding: '1.2rem', background: '#f9f9f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <section className="card perf-weight-panel">
         <div>
-          <strong>Total Goal Weight Assigned:</strong>{' '}
-          <span style={{ fontSize: '1.2rem', color: totalWeight === 100 ? '#2e7d32' : '#c62828' }}>
+          <span className="perf-weight-panel__label">Total goal weight assigned</span>{' '}
+          <span
+            className={`perf-weight-panel__value ${
+              totalWeight === 100 ? 'perf-weight-panel__value--ok' : 'perf-weight-panel__value--warn'
+            }`}
+          >
             {totalWeight}%
           </span>
-          <span className="muted" style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-            (Should sum up to exactly 100% at cycle launch)
-          </span>
+          <span className="perf-weight-panel__hint">Should sum to exactly 100% before cycle launch.</span>
         </div>
         <div>
           {totalWeight !== 100 && (
-            <span className="badge badge--danger">Warning: Weights do not sum to 100%</span>
+            <span className="badge badge--red">Warning: weights do not sum to 100%</span>
           )}
           {totalWeight === 100 && (
-            <span className="badge badge--active">Weighting balanced</span>
+            <span className="badge badge--green">Weighting balanced</span>
           )}
         </div>
       </section>
@@ -276,13 +316,13 @@ export function PerformanceGoalsPage() {
       {/* Goals List */}
       <section className="mb-6">
         {goals.length === 0 ? (
-          <div className="card text-center text-muted" style={{ padding: '4rem' }}>
-            No goals set for this cycle. {isSelf ? 'Click "+ Write Goal" to set your first objective.' : 'The employee has not created any goals yet.'}
+          <div className="card perf-empty-state">
+            No goals set for this cycle. {isSelf ? 'Click "+ Write goal" to set your first objective.' : 'This employee has not created any goals yet.'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="perf-goal-list">
             {goals.map((g) => (
-              <div className="card" key={g.id} style={{ padding: '1.5rem' }}>
+              <div className="card perf-goal-card" key={g.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{g.title}</h3>
@@ -318,7 +358,7 @@ export function PerformanceGoalsPage() {
                   </div>
                 </div>
 
-                <hr style={{ border: '0', borderTop: '1px solid #eee', margin: '1rem 0' }} />
+                <hr className="perf-goal-card__divider" />
 
                 {/* Progress bar / slider */}
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem', alignItems: 'center' }}>
@@ -338,8 +378,8 @@ export function PerformanceGoalsPage() {
                         onChange={(e) => handleUpdateProgress(g.id, parseInt(e.target.value, 10))}
                       />
                     ) : (
-                      <div className="progress-bar-container" style={{ background: '#eee', borderRadius: '4px', height: '10px', overflow: 'hidden' }}>
-                        <div className="progress-bar-fill" style={{ background: 'var(--primary-color)', height: '100%', width: `${g.progress}%` }} />
+                      <div className="perf-progress-track">
+                        <div className="perf-progress-fill" style={{ width: `${g.progress}%` }} />
                       </div>
                     )}
                   </div>
@@ -357,7 +397,7 @@ export function PerformanceGoalsPage() {
 
                 {/* Manager actions panel */}
                 {isManager && g.status === 'SUBMITTED' && (
-                  <div style={{ marginTop: '1.5rem', background: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+                  <div className="perf-manager-panel">
                     <div className="mb-3">
                       <label className="rec-form__label">Review Comment (Optional)</label>
                       <input
@@ -476,7 +516,7 @@ export function PerformanceGoalsPage() {
             </div>
 
             {/* Template library Column */}
-            <div style={{ borderLeft: '1px solid #eee', paddingLeft: '1.5rem', maxHeight: '500px', overflowY: 'auto' }}>
+            <div className="perf-modal-templates">
               <h4 className="font-semibold mb-3">Or choose from Template Library</h4>
               <p className="muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Select standard KPIs configured for your role.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

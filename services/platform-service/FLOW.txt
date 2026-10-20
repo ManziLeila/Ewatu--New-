@@ -35,12 +35,39 @@ notification-service (**3015**):
 
 Web admin (Vite): `npm run dev:web` from repo root → http://localhost:5173
 
+Demo data (local)
+-----------------
+From repo root (Postgres on 15432, after migrations):
+  npm run db:seed:dev
+
+Demo company slug: demo-tenant ("HC Solutions"). All passwords: DevPassword12!
+  tenant@ewatu.dev       TENANT_ADMIN
+  md@ewatu.dev           MANAGING_DIRECTOR  (+ executive dashboard)
+  hr.manager@ewatu.dev   HR_MANAGER
+  finance@ewatu.dev      FINANCE_OFFICER
+  grace.mukamana@ewatu.dev  TENANT_STAFF (linked employee + goals)
+  admin@ewatu.dev        PLATFORM_SUPER_ADMIN
+
+Payroll approval chain (internal client "default")
+--------------------------------------------------
+  Finance: run + Submit to HR
+  HR_MANAGER: approve SUBMITTED → HR_APPROVED (notifies MD)
+  MANAGING_DIRECTOR or TENANT_ADMIN: approve HR_APPROVED → MD_APPROVED
+  Finance: finalize after MD (client step skipped for default internal payroll)
+  Notifications: in-app/email when INTERNAL_API_KEY + notification-service are configured.
+
+Post-login landing (web): MD/CFO → /executive; Tenant Admin → /platform; Finance → /payroll/approvals; HR → /platform/hr-dashboard; Staff → /leave.
+Team user provisioning: Platform → Team can create payroll employee with same email automatically.
+
 Phase 1 foundation (v1)
 -----------------------
 - Tenant settings: PATCH /api/v1/my/tenant/settings (tenant admin)
 - Public careers portal: GET /api/v1/public/tenants/:slug, web /apply/:slug
 - User management: identity GET/POST/PATCH /api/v1/users (tenant admin)
-- Notifications: notification-service (email via SMTP or console log; in-app feed)
+- Notifications: notification-service (email via SMTP/Mailpit/Resend; in-app feed)
+- Email activation: new company admins & team users get verify-email link; login blocked until verified.
+  POST /api/v1/auth/resend-verification { email } · GET link → /verify-email?token=…
+  Local inbox: Mailpit http://localhost:8025 (docker mailpit, SMTP 1025). Set NOTIFICATION_SERVICE_URL + INTERNAL_API_KEY on identity & platform.
 - Run: npm run db:migrate:all  (includes notifications_db — create DB if missing)
 
 Deferred to later: MFA, refresh tokens, PostgreSQL RLS policies.

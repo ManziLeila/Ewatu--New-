@@ -1,0 +1,46 @@
+/*
+  Dark shell readability (html.dark). Light mode uses the same semantic tokens where noted.
+  Never use var(--muted) for text — in our token map it is a surface color (shadcn "muted" bg).
+*/
+
+html.dark,
+html[data-theme='dark'] {
+  --foreground: var(--ink);
+  --card-foreground: var(--ink);
+  --popover-foreground: var(--ink);
+  --muted-foreground: var(--ink-muted);
+  --secondary-foreground: var(--ink);
+
+  --sidebar-foreground: var(--color-neutral-50);
+  --sidebar-border: var(--line);
+  --sidebar-accent: color-mix(in srgb, var(--color-neutral-50) 10%, var(--sidebar-deep) 90%);
+  --sidebar-accent-foreground: var(--color-neutral-50);
+  --sidebar-primary: color-mix(in srgb, var(--color-secondary) 88%, white 12%);
+  --sidebar-primary-foreground: var(--color-on-secondary);
+
+  --input: var(--line-strong);
+}
+
+html.dark .pef-segment,
+html[data-theme='dark'] .pef-segment,
+html.dark .pef-calc-card,
+html[data-theme='dark'] .pef-calc-card {
+  border-color: var(--line);
+}
+
+html.dark .pef-calc-card,
+html[data-theme='dark'] .pef-calc-card {
+  background: var(--card-sub);
+}
+
+html.dark .payroll-dash__link-card:hover,
+html[data-theme='dark'] .payroll-dash__link-card:hover {
+  background: var(--card-sub);
+  border-color: var(--line-strong);
+}
+
+html.dark select.auth-input option,
+html[data-theme='dark'] select.auth-input option {
+  background: var(--card);
+  color: var(--ink);
+}

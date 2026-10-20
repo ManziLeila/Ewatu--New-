@@ -41,6 +41,7 @@ export async function loginRequest(email: string, password: string) {
   meCache = null;
   meCacheAt = 0;
   meBackoffUntil = 0;
+  clearCapabilitiesCache();
   scheduleProactiveTokenRefresh();
 }
 
@@ -65,6 +66,7 @@ export async function registerRequest(
   meCache = null;
   meCacheAt = 0;
   meBackoffUntil = 0;
+  clearCapabilitiesCache();
   scheduleProactiveTokenRefresh();
 }
 
@@ -107,6 +109,7 @@ export function clearAuthTokens() {
   meCacheAt = 0;
   meInFlight = null;
   meBackoffUntil = 0;
+  clearCapabilitiesCache();
   clearStoredAuthTokens();
 }
 
@@ -158,6 +161,16 @@ export async function registerCompany(body: {
   }>(r);
 }
 
+export async function resendVerificationRequest(email: string) {
+  const r = await fetch(`${identityUrl()}/api/v1/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson<{ message: string }>(r);
+}
+
 export async function verifyEmailRequest(token: string) {
   const r = await fetch(`${identityUrl()}/api/v1/auth/verify-email`, {
     method: 'POST',
@@ -186,6 +199,35 @@ export async function resetPasswordRequest(token: string, newPassword: string) {
   });
   if (!r.ok) throw new Error(await r.text());
   return parseJson<{ reset: boolean }>(r);
+}
+
+export type CapabilitiesPayload = {
+  tenantId: string | null;
+  enabledModules: string[];
+  permissions: string[];
+  menus: { id: string; label: string; pathPrefix: string; permission?: string }[];
+};
+
+let capabilitiesCache: CapabilitiesPayload | null = null;
+let capabilitiesCacheAt = 0;
+const CAPABILITIES_CACHE_MS = 60_000;
+
+export async function fetchCapabilities(options?: { force?: boolean }) {
+  const force = options?.force ?? false;
+  const now = Date.now();
+  if (!force && capabilitiesCache && now - capabilitiesCacheAt < CAPABILITIES_CACHE_MS) {
+    return capabilitiesCache;
+  }
+  const r = await authFetch(`${platformUrl()}/api/v1/my/capabilities`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  capabilitiesCache = await parseJson<CapabilitiesPayload>(r);
+  capabilitiesCacheAt = now;
+  return capabilitiesCache;
+}
+
+export function clearCapabilitiesCache() {
+  capabilitiesCache = null;
+  capabilitiesCacheAt = 0;
 }
 
 export async function fetchMyTenant() {

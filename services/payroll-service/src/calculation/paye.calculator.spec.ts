@@ -39,6 +39,7 @@ describe('calculatePayroll', () => {
     rssbMedical: 0.075,
     cbhiRate: 0.005,
     maternityLevy: 0.003,
+    occupationalHazardRate: 0.02,
   };
 
   it('calculates PAYE 6000 and netPay 46200 for basic salary 60000', () => {
@@ -75,6 +76,43 @@ describe('calculatePayroll', () => {
     expect(result.totalDeductions).toBe(70000);
     expect(result.netPay).toBe(130000);
     expect(result.employerCosts.maternityLevy).toBe(600);
+  });
+
+  it('applies Rwanda pension, PAYE, and CBHI without any RSSB membership number (salary-driven only)', () => {
+    const result = calculatePayroll(
+      {
+        basicSalary: 100000,
+        housingAllowance: 0,
+        transportAllowance: 0,
+        otherAllowances: 0,
+        otherDeductions: 0,
+        includeRama: true,
+      },
+      rwandaConfig,
+    );
+    expect(result.paye).toBe(14000);
+    expect(result.rssbEmployee).toBe(5000);
+    expect(result.rssbEmployer).toBe(5000);
+    expect(result.cbhi).toBe(500);
+    expect(result.rssbMedical).toBe(7500);
+  });
+
+  it('still applies pension and PAYE when RAMA is excluded for an employee', () => {
+    const result = calculatePayroll(
+      {
+        basicSalary: 100000,
+        housingAllowance: 0,
+        transportAllowance: 0,
+        otherAllowances: 0,
+        otherDeductions: 0,
+        includeRama: false,
+      },
+      rwandaConfig,
+    );
+    expect(result.paye).toBe(14000);
+    expect(result.rssbEmployee).toBe(5000);
+    expect(result.rssbMedical).toBe(0);
+    expect(result.cbhi).toBe(500);
   });
 
   it('calculates netPay 21750 for basic salary 25000', () => {

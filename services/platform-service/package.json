@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@ewatu/common-auth": "file:../../libs/common-auth",
+    "@ewatu/module-sdk": "file:../../libs/module-sdk",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.4",

@@ -8,6 +8,8 @@
     "web"
   ],
   "scripts": {
+    "build:module-sdk": "npm run build --prefix libs/module-sdk",
+    "check:architecture": "npm run build:module-sdk && node scripts/check-architecture.mjs",
     "build:common-auth": "npm run build --prefix libs/common-auth",
     "build:platform": "npm run build --prefix services/platform-service",
     "build:identity": "npm run build --prefix services/identity-service",
@@ -31,10 +33,12 @@
     "dev:lending": "npm run start:dev --prefix services/lending-service",
     "dev:web": "npm run dev --prefix web",
     "predev": "node scripts/free-dev-ports.mjs",
-    "dev": "concurrently -k -n identity,platform,notification,recruitment,web -c blue,green,cyan,yellow,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:notification\" \"npm run dev:recruitment\" \"npm run dev:web\"",
+    "dev": "node node_modules/concurrently/dist/bin/concurrently.js -k -n identity,platform,notification,recruitment,payroll,talent-pool,document,web -c blue,green,cyan,yellow,red,magenta,white,gray \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:notification\" \"npm run dev:recruitment\" \"npm run dev:payroll\" \"npm run dev:talent-pool\" \"npm run dev:document\" \"npm run dev:web\"",
     "predev:all": "node scripts/free-dev-ports.mjs",
-    "dev:all": "concurrently -k -n identity,platform,recruitment,talent-pool,payroll,procurement,lending,document,notification,web -c blue,green,yellow,red,white,orange,purple,magenta,cyan,gray \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:talent-pool\" \"npm run dev:payroll\" \"npm run dev:procurement\" \"npm run dev:lending\" \"npm run dev:document\" \"npm run dev:notification\" \"npm run dev:web\"",
+    "dev:all": "node node_modules/concurrently/dist/bin/concurrently.js -k -n identity,platform,recruitment,talent-pool,payroll,procurement,lending,document,notification,web -c blue,green,yellow,red,white,orange,purple,magenta,cyan,gray \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:talent-pool\" \"npm run dev:payroll\" \"npm run dev:procurement\" \"npm run dev:lending\" \"npm run dev:document\" \"npm run dev:notification\" \"npm run dev:web\"",
     "db:up": "docker compose up -d postgres minio mailpit",
+    "db:generate:all": "node scripts/prisma-generate-all.mjs",
+    "db:prepare": "npm run db:up && npm run db:generate:all && npm run db:migrate:all && npm run db:seed:dev",
     "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service",
     "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service",
     "db:migrate:talent-pool": "npm run prisma:migrate --prefix services/talent-pool-service",
@@ -42,15 +46,18 @@
     "db:migrate:notification": "npm run prisma:migrate --prefix services/notification-service",
     "db:migrate:lending": "npm run prisma:migrate --prefix services/lending-service",
     "db:migrate:all": "npm run db:migrate:identity && npm run prisma:migrate --prefix services/platform-service && npm run db:migrate:recruitment && npm run db:migrate:notification && npm run db:migrate:talent-pool && npm run db:migrate:payroll && npm run prisma:push --prefix services/procurement-service && npm run db:migrate:lending",
-    "db:seed:dev": "npm run prisma:seed --prefix services/platform-service && npm run prisma:seed --prefix services/identity-service",
+    "db:seed:dev": "npm run prisma:seed --prefix services/platform-service && npm run prisma:seed --prefix services/identity-service && npm run prisma:seed --prefix services/payroll-service && npm run prisma:seed --prefix services/recruitment-service",
     "check:dev": "node scripts/check-dev.mjs",
-    "check:dev:build": "node scripts/check-dev.mjs --build"
+    "check:dev:build": "node scripts/check-dev.mjs --build",
+    "install:web": "node scripts/install-web-deps.mjs",
+    "install:safe": "node scripts/free-dev-ports.mjs && npm install --ignore-scripts && npm run db:generate:all && npm rebuild bcrypt",
+    "rebuild:native": "npm rebuild bcrypt"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.5"
   },
   "dependencies": {
     "class-transformer": "^0.5.1",

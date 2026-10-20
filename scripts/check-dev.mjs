@@ -45,7 +45,9 @@ const services = [
   { name: 'identity', url: 'http://127.0.0.1:3011/api/v1/identity/health' },
   { name: 'platform', url: 'http://127.0.0.1:3012/api/v1/platform/health' },
   { name: 'recruitment', url: 'http://127.0.0.1:3013/api/v1/recruitment/health' },
+  { name: 'talent-pool', url: 'http://127.0.0.1:3014/api/v1/talent-pool/health' },
   { name: 'notification', url: 'http://127.0.0.1:3015/api/v1/notifications/health' },
+  { name: 'payroll', url: 'http://127.0.0.1:3016/api/v1/payroll/health' },
   { name: 'document', url: 'http://127.0.0.1:3018/api/v1/document/health' },
 ];
 
@@ -155,7 +157,7 @@ for (const s of services) {
   } catch {
     fail(
       `${s.name}: not reachable at ${s.url}\n` +
-        '  Run npm run dev:all in another terminal (after npm run db:up).',
+        '  Run npm run dev (or npm run dev:all) in another terminal (after npm run db:up).',
     );
   }
 }

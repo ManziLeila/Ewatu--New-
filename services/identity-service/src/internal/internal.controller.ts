@@ -22,4 +22,17 @@ export class InternalController {
   findUserIdByEmail(@Query('email') email: string) {
     return this.auth.findUserIdByEmail(email);
   }
+
+  @Get('users/by-tenant-roles')
+  async findUsersByTenantRoles(
+    @Query('tenantId') tenantId: string,
+    @Query('roles') rolesCsv: string,
+  ) {
+    const roles = (rolesCsv ?? '')
+      .split(',')
+      .map((r) => r.trim())
+      .filter(Boolean);
+    const data = await this.auth.findUsersByTenantRoles(tenantId, roles);
+    return { data };
+  }
 }

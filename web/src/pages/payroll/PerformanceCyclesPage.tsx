@@ -223,7 +223,7 @@ export function PerformanceCyclesPage() {
           <p className="muted mb-4">Core skills and competencies rated during employee reviews.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {framework?.competencies?.map((comp: any) => (
-              <div className="card" key={comp.id} style={{ padding: '1rem', borderLeft: '3px solid var(--accent-color, #f5911e)' }}>
+              <div className="card" key={comp.id} style={{ padding: '1rem', borderLeft: '3px solid var(--color-secondary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
                   <strong>{comp.name}</strong>
                   <span className="badge badge--neutral">Weight: {comp.weight}</span>

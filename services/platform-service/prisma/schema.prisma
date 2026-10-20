@@ -46,6 +46,26 @@ model Tenant {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  moduleEntitlements TenantModuleEntitlement[]
+
   @@index([slug])
   @@index([status])
+}
+
+model TenantModuleEntitlement {
+  id         String    @id @default(uuid())
+  tenantId   String    @map("tenant_id")
+  moduleId   String    @map("module_id")
+  enabled    Boolean   @default(true)
+  validFrom  DateTime? @map("valid_from")
+  validTo    DateTime? @map("valid_to")
+  limitsJson Json?     @map("limits_json")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, moduleId])
+  @@index([tenantId])
+  @@map("tenant_module_entitlements")
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { EwatuRole, type AuthUser } from '@ewatu/common-auth';
+import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateUserDto } from './dtos/create-user.dto';
 import type { UpdateUserDto } from './dtos/update-user.dto';
@@ -14,7 +15,10 @@ const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auth: AuthService,
+  ) {}
 
   private assertTenantAdmin(user: AuthUser) {
     if (!user.tenant_id) {
@@ -74,7 +78,7 @@ export class UsersService {
         displayName: dto.displayName?.trim() || null,
         roles: safe,
         tenantId: user.tenant_id!,
-        emailVerified: true,
+        emailVerified: false,
         active: true,
       },
       select: {
@@ -87,6 +91,8 @@ export class UsersService {
         createdAt: true,
       },
     });
+
+    void this.auth.sendEmailVerification(created.id);
 
     return created;
   }

@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthSessionRefresh } from './components/AuthSessionRefresh';
 import { useTenantThemeSync } from './lib/useTenantThemeSync';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RequireRoles } from './components/RequireRoles';
+import { EXECUTIVE_ROLES } from './lib/roles';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -86,12 +88,18 @@ import { LeaveApprovalsPage } from './pages/leave/LeaveApprovalsPage';
 import { LeaveBalancesPage } from './pages/leave/LeaveBalancesPage';
 import { LeaveTypesPage } from './pages/leave/LeaveTypesPage';
 import { PerformanceLayout } from './pages/performance/PerformanceLayout';
+import { ExecutiveLayout } from './pages/executive/ExecutiveLayout';
+import { ExecutiveOverviewPage } from './pages/executive/ExecutiveOverviewPage';
+import { ExecutiveFinancialPage } from './pages/executive/ExecutiveFinancialPage';
+import { ExecutiveApprovalsPage } from './pages/executive/ExecutiveApprovalsPage';
+import { AppProviders } from '@/components/app/AppProviders';
+import { RequireModule } from './components/RequireModule';
 
 
 export default function App() {
   useTenantThemeSync();
   return (
-    <>
+    <AppProviders>
       <AuthSessionRefresh />
       <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -138,7 +146,9 @@ export default function App() {
         path="/recruitment"
         element={
           <ProtectedRoute>
-            <RecruitmentLayout />
+            <RequireModule moduleId="recruitment">
+              <RecruitmentLayout />
+            </RequireModule>
           </ProtectedRoute>
         }
       >
@@ -155,7 +165,9 @@ export default function App() {
         path="/talent-pool"
         element={
           <ProtectedRoute>
-            <TalentPoolLayout />
+            <RequireModule moduleId="talent-pool">
+              <TalentPoolLayout />
+            </RequireModule>
           </ProtectedRoute>
         }
       >
@@ -169,11 +181,13 @@ export default function App() {
         path="/payroll"
         element={
           <ProtectedRoute>
-            <PayrollLayout />
+            <RequireModule moduleId="payroll">
+              <PayrollLayout />
+            </RequireModule>
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="approvals" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="approvals" element={<PayrollApprovalsPage />} />
         <Route path="clients" element={<PayrollClientsPage />} />
         <Route path="employees" element={<PayrollEmployeesPage />} />
@@ -207,12 +221,15 @@ export default function App() {
         path="/leave"
         element={
           <ProtectedRoute>
-            <LeaveLayout />
+            <RequireModule moduleId="leave">
+              <LeaveLayout />
+            </RequireModule>
           </ProtectedRoute>
         }
       >
         <Route index element={<LeaveDashboardPage />} />
         <Route path="apply" element={<LeaveApplyPage />} />
+        <Route path="requests/:requestId/edit" element={<LeaveApplyPage />} />
         <Route path="requests" element={<LeaveRequestsPage />} />
         <Route path="balance" element={<MyLeaveBalancePage />} />
         <Route path="calendar" element={<LeaveCalendarPage />} />
@@ -227,10 +244,26 @@ export default function App() {
         <Route path="types" element={<LeaveTypesPage />} />
       </Route>
       <Route
+        path="/executive"
+        element={
+          <ProtectedRoute>
+            <RequireRoles allowed={[...EXECUTIVE_ROLES]}>
+              <ExecutiveLayout />
+            </RequireRoles>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ExecutiveOverviewPage />} />
+        <Route path="financial" element={<ExecutiveFinancialPage />} />
+        <Route path="approvals" element={<ExecutiveApprovalsPage />} />
+      </Route>
+      <Route
         path="/performance"
         element={
           <ProtectedRoute>
-            <PerformanceLayout />
+            <RequireModule moduleId="performance">
+              <PerformanceLayout />
+            </RequireModule>
           </ProtectedRoute>
         }
       >
@@ -246,6 +279,6 @@ export default function App() {
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    </>
+    </AppProviders>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BRAND } from '../lib/brand';
 
 interface EmployeeProfile {
   id: string;
@@ -32,7 +33,7 @@ const employees: EmployeeProfile[] = [
     deductions: '-RWF 85,000',
     netPay: 'RWF 885,000',
     trend: '+2.5% from last month',
-    avatarBg: '#0f766e',
+    avatarBg: BRAND.primary,
   },
   {
     id: 'alex',
@@ -48,7 +49,7 @@ const employees: EmployeeProfile[] = [
     deductions: '-RWF 98,500',
     netPay: 'RWF 1,001,500',
     trend: '+4.0% from last month',
-    avatarBg: '#1e3a8a',
+    avatarBg: BRAND.primaryDark,
   },
   {
     id: 'marie',
@@ -64,7 +65,7 @@ const employees: EmployeeProfile[] = [
     deductions: '-RWF 112,000',
     netPay: 'RWF 1,168,000',
     trend: '+1.8% from last month',
-    avatarBg: '#7c3aed',
+    avatarBg: BRAND.secondary,
   },
 ];
 
@@ -238,7 +239,7 @@ export function HrShowcaseSection() {
             <div className="hr-mockup-card">
               {/* Employee Top Card */}
               <div className="hr-emp-header">
-                <div className="hr-emp-avatar" style={{ backgroundColor: activeEmp.avatarBg || '#0f766e' }}>
+                <div className="hr-emp-avatar" style={{ backgroundColor: activeEmp.avatarBg || BRAND.primary }}>
                   {activeEmp.initials}
                 </div>
                 <div className="hr-emp-info">

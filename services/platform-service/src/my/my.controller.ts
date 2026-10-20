@@ -1,14 +1,25 @@
 import { Body, Controller, ForbiddenException, Get, Patch, UseGuards } from '@nestjs/common';
 import { AllowTenantStatus, AuthUser, CurrentUser, EwatuRole, JwtAuthGuard, Roles, RolesGuard } from '@ewatu/common-auth';
 import { TenantService } from '../tenant/tenant.service';
+import { EntitlementsService } from '../entitlements/entitlements.service';
 import { UpdateTenantSettingsDto } from './dtos/update-tenant-settings.dto';
 
 @Controller('my')
 export class MyController {
-  constructor(private readonly tenant: TenantService) {}
+  constructor(
+    private readonly tenant: TenantService,
+    private readonly entitlements: EntitlementsService,
+  ) {}
 
   /** Current user's company (tenant), if they belong to one. Reachable regardless of tenant
    *  status so a blocked user's frontend can still show the right screen. */
+  @UseGuards(JwtAuthGuard)
+  @AllowTenantStatus('SUSPENDED', 'EXPIRED', 'PENDING_ACTIVATION', 'REJECTED')
+  @Get('capabilities')
+  async myCapabilities(@CurrentUser() user: AuthUser) {
+    return this.entitlements.buildCapabilities(user.tenant_id, user.roles, user.permissions);
+  }
+
   @UseGuards(JwtAuthGuard)
   @AllowTenantStatus('SUSPENDED', 'EXPIRED', 'PENDING_ACTIVATION', 'REJECTED')
   @Get('tenant')

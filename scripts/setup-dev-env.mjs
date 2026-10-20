@@ -26,7 +26,7 @@ JWT_PRIVATE_KEY=${priv}
 JWT_PUBLIC_KEY=${pub}
 JWT_ISSUER=http://localhost:3011/auth
 JWT_EXPIRES_IN=15m
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 INTERNAL_API_KEY=${internalKey}
 PLATFORM_SERVICE_URL=http://127.0.0.1:3012
 `,
@@ -35,7 +35,7 @@ SERVICE_NAME=platform-service
 DATABASE_URL=${db('platform_db')}
 JWT_PUBLIC_KEY=${pub}
 JWT_ISSUER=http://localhost:3011/auth
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 INTERNAL_API_KEY=${internalKey}
 IDENTITY_SERVICE_URL=http://127.0.0.1:3011
 NOTIFICATION_SERVICE_URL=http://127.0.0.1:3015
@@ -48,7 +48,7 @@ DATABASE_URL=${db('recruitment_db')}
 JWT_PUBLIC_KEY=${pub}
 JWT_ISSUER=http://localhost:3011/auth
 JWT_EXPIRES_IN=15m
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 PLATFORM_SERVICE_URL=http://127.0.0.1:3012
 INTERNAL_API_KEY=${internalKey}
 NOTIFICATION_SERVICE_URL=http://127.0.0.1:3015
@@ -59,7 +59,7 @@ SERVICE_NAME=notification-service
 DATABASE_URL=${db('notifications_db')}
 JWT_PUBLIC_KEY=${pub}
 JWT_ISSUER=http://localhost:3011/auth
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 INTERNAL_API_KEY=${internalKey}
 EMAIL_FROM=noreply@ewatu.local
 MAIL_FROM_NAME=E-Watu
@@ -78,7 +78,7 @@ SMTP_SECURE=false
 SERVICE_NAME=document-service
 JWT_PUBLIC_KEY=${pub}
 JWT_ISSUER=http://localhost:3011/auth
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 S3_ENDPOINT=http://127.0.0.1:19000
 S3_REGION=us-east-1
 S3_BUCKET=ewatu-dev
@@ -92,7 +92,7 @@ SERVICE_NAME=talent-pool-service
 NODE_ENV=development
 PORT=3014
 INTERNAL_API_KEY=${internalKey}
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 `,
   'services/payroll-service/.env': `DATABASE_URL=${db('payroll_db')}
 JWT_PUBLIC_KEY=${pub}
@@ -102,7 +102,7 @@ NODE_ENV=development
 PORT=3016
 INTERNAL_API_KEY=${internalKey}
 NOTIFICATION_SERVICE_URL=http://127.0.0.1:3015
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 `,
 };
 
@@ -127,4 +127,4 @@ VITE_DOCUMENT_API=http://localhost:3018
 writeFileSync(webEnv, webEnvBody);
 console.log('wrote web/.env');
 
-console.log('\nDone. Next: npm run db:up && npm run db:migrate:all && npm run db:seed:dev && npm run dev');
+console.log('\nDone. Next: npm run db:up && npm run db:generate:all && npm run db:migrate:all && npm run db:seed:dev && npm run dev');

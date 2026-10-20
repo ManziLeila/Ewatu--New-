@@ -67,7 +67,7 @@ export function MyLeaveBalancePage() {
                 <div className="muted" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{b.leaveType?.name}</div>
                 <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0.4rem 0' }}>
                   {isUnpaid ? 'Unlimited' : remaining}{' '}
-                  {!isUnpaid && <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--muted)' }}>days left</span>}
+                  {!isUnpaid && <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--ink-muted)' }}>days left</span>}
                 </div>
                 {!isUnpaid && (
                   <>

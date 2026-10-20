@@ -13,6 +13,12 @@ export { PermissionsGuard } from './permissions.guard';
 export { hasPermission } from './permission-matcher';
 export { TENANT_STATUS_KEY, AllowTenantStatus } from './tenant-status.decorator';
 export { TenantStatusGuard } from './tenant-status.guard';
+export { REQUIRES_MODULE_KEY, RequiresModule } from './requires-module.decorator';
+export { ModuleGuard } from './module.guard';
+export {
+  MODULE_ENTITLEMENTS_RESOLVER,
+  type ModuleEntitlementsResolver,
+} from './module-entitlements.resolver';
 export { AllExceptionsFilter } from './all-exceptions.filter';
 export { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 export { ResponseInterceptor, type ApiResponse } from './interceptors/response.interceptor';

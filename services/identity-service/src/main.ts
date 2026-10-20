@@ -8,7 +8,9 @@ import { ThrottleExceptionFilter } from './common/throttle-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
-  const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  const corsOrigins = (
+    process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://127.0.0.1:5173'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);

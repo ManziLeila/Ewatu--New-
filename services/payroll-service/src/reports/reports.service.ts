@@ -52,14 +52,14 @@ export class ReportsService {
   async generateRSSBReport(tenantId: string, periodId: string) {
     const records = await this.prisma.payrollRecord.findMany({
       where: { tenantId, periodId },
-      include: { employee: { select: { firstName: true, lastName: true } } },
+      include: { employee: { select: { firstName: true, lastName: true, rssbNumber: true } } },
     });
     if (!records.length) throw new NotFoundException('No payroll records found');
     const rows = records.map(
       (r) =>
-        `${r.employee.firstName} ${r.employee.lastName},${Number(r.rssbEmployee)},${Number(r.rssbEmployer)},${Number(r.rssbMedical)}`,
+        `${r.employee.firstName} ${r.employee.lastName},${r.employee.rssbNumber ?? ''},${Number(r.rssbEmployee)},${Number(r.rssbEmployer)},${Number(r.rssbMedical)}`,
     );
-    return `Employee Name,RSSB Employee,RSSB Employer,RSSB Medical\n${rows.join('\n')}\n`;
+    return `Employee Name,RSSB Number,RSSB Employee,RSSB Employer,RSSB Medical\n${rows.join('\n')}\n`;
   }
 
   async generateSummaryReport(tenantId: string, clientId: string, year: number) {

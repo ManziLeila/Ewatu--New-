@@ -264,7 +264,7 @@ export function Feedback360Page() {
             requestsSent
               .filter((r) => r.status === 'COMPLETED' && r.response)
               .map((r) => (
-                <div className="card" key={r.id} style={{ borderLeft: '4px solid var(--accent-color, #f5911e)' }}>
+                <div className="card" key={r.id} style={{ borderLeft: '4px solid var(--color-secondary)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span className="badge badge--neutral">Reviewer Relationship: {r.relationship}</span>
                     <span className="text-muted" style={{ fontSize: '0.8rem' }}>Submitted: {new Date(r.response.createdAt).toLocaleDateString()}</span>

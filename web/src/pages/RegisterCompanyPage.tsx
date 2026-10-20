@@ -96,6 +96,14 @@ export function RegisterCompanyPage() {
           </div>
           <h2 className="auth-heading">Application received</h2>
           <p className="auth-lead auth-lead--tight">{done.message}</p>
+          <p className="muted small" style={{ marginTop: '0.75rem' }}>
+            We sent an <strong>activation link</strong> to your administrator email. Open it before signing in.
+            In local dev, view messages at{' '}
+            <a href="http://localhost:8025" target="_blank" rel="noreferrer">
+              Mailpit (localhost:8025)
+            </a>
+            .
+          </p>
           <div className="auth-success__meta">
             <p>
               <span className="auth-success__k">Workspace ID</span>

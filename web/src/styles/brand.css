@@ -1,53 +1,88 @@
 :root {
-  /* Sleek Executive Dark Theme Base Tokens — every one of these is overridable per-tenant
-     via the --tenant-* custom properties injected at runtime (see lib/tenantTheme.ts) from
-     the company's Accessibility > Settings color pickers. A tenant that hasn't set a given
-     color simply falls through to the literal default after the comma, so picking 1-5 of
-     the 5 slots (Primary/Secondary/Accent/Background/Text) both work. */
-  /* A tenant's "Background" pick is only ever mixed toward black, never used raw — the shell is
-     a dark theme, so a bright/saturated choice (e.g. pure blue) must still read as a subtle dark
-     tint, not a full-page wash. Every other surface token derives from this already-darkened
-     --surface, not from --tenant-background directly, so the whole shell stays one coherent
-     dark family regardless of what a tenant picks. */
-  --surface: color-mix(in srgb, var(--tenant-background, #070c18) 30%, black 70%);
-  --surface-alt: color-mix(in srgb, var(--surface) 88%, white 7%);
-  --card: color-mix(in srgb, var(--surface) 93%, white 10%);
-  --card-sub: color-mix(in srgb, var(--surface) 89%, white 15%);
-  --line: color-mix(in srgb, var(--tenant-text, #f8fafc) 9%, transparent);
-  --line-strong: color-mix(in srgb, var(--tenant-text, #f8fafc) 16%, transparent);
+  /*
+    E-Watu brand palette — single source of truth (tenant overrides via --tenant-* in tenantTheme.ts).
+    Primary #00466c · Secondary / accent #f5911e
+  */
 
-  --ink: var(--tenant-text, #f8fafc);
-  --ink-muted: color-mix(in srgb, var(--tenant-text, #f8fafc) 62%, var(--surface) 38%);
-  --ink-subtle: color-mix(in srgb, var(--tenant-text, #f8fafc) 42%, var(--surface) 58%);
+  /* —— Neutrals (light workspace + harmonized grays) —— */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #030712;
 
-  /* Sidebar chrome — same tenant-background tint as --surface, mixed even darker so the
-     sidebar reads as a distinct, deeper layer instead of a flat, unrelated hardcoded color. */
-  --sidebar-deep: color-mix(in srgb, var(--tenant-background, #030712) 22%, black 78%);
-  --sidebar-mid: color-mix(in srgb, var(--tenant-background, #070c18) 30%, black 70%);
+  --color-surface-light: #ffffff;
+  --color-border-subtle: var(--color-neutral-200);
+  --color-text-on-light: var(--color-neutral-900);
+  --color-text-muted-on-light: var(--color-neutral-500);
 
-  /* Primary Brand Colors preserved (#00466c & #f5911e) as defaults */
-  --brand: var(--tenant-primary, #00466c);
-  --brand-dark: color-mix(in srgb, var(--tenant-primary, #00466c) 55%, black);
-  --brand-mid: color-mix(in srgb, var(--tenant-primary, #00466c) 82%, white 14%);
-  --brand-light: #162a3f;
-  --brand-soft: color-mix(in srgb, var(--tenant-primary, #00466c) 25%, transparent);
-  --brand-glow: color-mix(in srgb, var(--tenant-primary, #00466c) 40%, transparent);
+  /* —— Brand core —— */
+  --color-primary: var(--tenant-primary, #00466c);
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 18%, white 82%);
+  --color-primary-mid: color-mix(in srgb, var(--color-primary) 72%, white 28%);
+  --color-primary-dark: color-mix(in srgb, var(--color-primary) 68%, black 32%);
+  --color-primary-darker: color-mix(in srgb, var(--color-primary) 82%, black 18%);
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  --color-primary-glow: color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 88%, white 12%);
+  --color-primary-active: color-mix(in srgb, var(--color-primary) 92%, black 8%);
+  --color-primary-disabled: color-mix(in srgb, var(--color-primary) 35%, var(--color-neutral-200) 65%);
+  --color-on-primary: #f8fafc;
 
-  --brand-secondary: var(--tenant-secondary, #005a8a);
-  --brand-secondary-soft: color-mix(in srgb, var(--tenant-secondary, #005a8a) 20%, transparent);
+  --color-secondary: var(--tenant-accent, var(--tenant-secondary, #f5911e));
+  --color-secondary-light: color-mix(in srgb, var(--color-secondary) 22%, white 78%);
+  --color-secondary-dark: color-mix(in srgb, var(--color-secondary) 78%, black 22%);
+  --color-secondary-soft: color-mix(in srgb, var(--color-secondary) 16%, transparent);
+  --color-secondary-glow: color-mix(in srgb, var(--color-secondary) 32%, transparent);
+  --color-secondary-hover: color-mix(in srgb, var(--color-secondary) 90%, white 10%);
+  --color-secondary-active: color-mix(in srgb, var(--color-secondary) 88%, black 12%);
+  --color-secondary-disabled: color-mix(in srgb, var(--color-secondary) 40%, var(--color-neutral-200) 60%);
+  /* WCAG: orange on white fails for small text — use primary/dark on orange fills */
+  --color-on-secondary: var(--color-primary-darker);
 
-  --accent: var(--tenant-accent, #f5911e);
-  --accent-hover: color-mix(in srgb, var(--tenant-accent, #f5911e) 88%, white 15%);
-  --accent-soft: color-mix(in srgb, var(--tenant-accent, #f5911e) 16%, transparent);
-  --accent-glow: color-mix(in srgb, var(--tenant-accent, #f5911e) 30%, transparent);
+  --color-focus-ring: color-mix(in srgb, var(--color-primary) 55%, var(--color-secondary) 45%);
 
-  --hero-deep: #030712;
-  --hero-mid: #070d1a;
+  /* —— Semantic (distinct from brand) —— */
+  --color-success: #059669;
+  --color-success-soft: color-mix(in srgb, var(--color-success) 14%, transparent);
+  --color-success-on-soft: #34d399;
+  --color-warning: #d97706;
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  --color-warning-on-soft: #fbbf24;
+  --color-error: #dc2626;
+  --color-error-soft: color-mix(in srgb, var(--color-error) 14%, transparent);
+  --color-error-on-soft: #f87171;
+  --color-info: #0284c7;
+  --color-info-soft: color-mix(in srgb, var(--color-info) 14%, transparent);
+  --color-info-on-soft: #60a5fa;
 
-  --glass-bg: rgba(14, 23, 42, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  --glass-shadow-hover: 0 20px 48px -10px rgba(0, 70, 108, 0.35), 0 8px 16px -3px rgba(0, 0, 0, 0.3);
+  /* App shell light/dark: theme-modes.css (html.dark) */
+
+  /* Legacy aliases (existing CSS / components) */
+  --brand: var(--color-primary);
+  --brand-dark: var(--color-primary-dark);
+  --brand-mid: var(--color-primary-mid);
+  --brand-light: color-mix(in srgb, var(--color-primary) 28%, var(--color-neutral-900) 72%);
+  --brand-soft: var(--color-primary-soft);
+  --brand-glow: var(--color-primary-glow);
+  --brand-secondary: var(--color-primary-mid);
+  --brand-secondary-soft: color-mix(in srgb, var(--color-primary-mid) 20%, transparent);
+
+  --accent: var(--color-secondary);
+  --accent-hover: var(--color-secondary-hover);
+  --accent-soft: var(--color-secondary-soft);
+  --accent-glow: var(--color-secondary-glow);
+
+  --glass-shadow: 0 12px 36px -8px color-mix(in srgb, black 50%, transparent),
+    0 4px 6px -2px color-mix(in srgb, black 20%, transparent);
+  --glass-shadow-hover: 0 20px 48px -10px var(--color-primary-glow),
+    0 8px 16px -3px color-mix(in srgb, black 30%, transparent);
 }
 
 /* ============================================================
@@ -56,9 +91,9 @@
 
 .module-banner {
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--border);
+  background: var(--workspace-card);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--foreground) 5%, transparent);
   overflow: hidden;
   margin-bottom: 2rem;
 }
@@ -68,8 +103,8 @@
   align-items: center;
   gap: 1.25rem;
   padding: 1.5rem 1.75rem;
-  background: linear-gradient(135deg, #00466c 0%, #002840 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--brand-dark) 100%);
+  color: var(--primary-foreground);
 }
 
 .module-banner__icon {
@@ -99,20 +134,20 @@
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--color-on-primary);
 }
 
 .module-banner__sub {
   margin: 0;
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--color-neutral-400);
   line-height: 1.4;
 }
 
 .module-banner__body {
   padding: 1.5rem 1.75rem;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  background: var(--color-neutral-50);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .module-banner__section-label {
@@ -122,7 +157,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--color-text-muted-on-light);
 }
 
 .module-banner__features-grid {
@@ -149,17 +184,17 @@
   gap: 0.6rem;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border-subtle);
   font-size: 0.875rem;
   font-weight: 600;
-  color: #334155;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+  color: var(--color-neutral-700);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-neutral-900) 2%, transparent);
   transition: all 0.15s ease;
 }
 
 .module-banner__feature-pill:hover {
-  border-color: #cbd5e1;
+  border-color: var(--color-neutral-300);
   transform: translateY(-1px);
 }
 
@@ -170,8 +205,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #d1fae5;
-  color: #059669;
+  background: var(--color-success-soft);
+  color: var(--color-success);
   flex-shrink: 0;
 }
 
@@ -197,9 +232,9 @@
 .expiry-kpi-card {
   padding: 1.1rem;
   border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-neutral-900) 3%, transparent);
 }
 
 .expiry-kpi-card__label {
@@ -208,7 +243,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: var(--color-text-muted-on-light);
   margin-bottom: 0.35rem;
 }
 
@@ -216,11 +251,11 @@
   display: block;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--color-text-on-light);
 }
 
-.expiry-kpi-card--danger .expiry-kpi-card__val { color: #dc2626; }
-.expiry-kpi-card--warning .expiry-kpi-card__val { color: #d97706; }
-.expiry-kpi-card--info .expiry-kpi-card__val { color: #0284c7; }
-.expiry-kpi-card--success .expiry-kpi-card__val { color: #059669; }
+.expiry-kpi-card--danger .expiry-kpi-card__val { color: var(--color-error); }
+.expiry-kpi-card--warning .expiry-kpi-card__val { color: var(--color-warning); }
+.expiry-kpi-card--info .expiry-kpi-card__val { color: var(--color-info); }
+.expiry-kpi-card--success .expiry-kpi-card__val { color: var(--color-success); }
 

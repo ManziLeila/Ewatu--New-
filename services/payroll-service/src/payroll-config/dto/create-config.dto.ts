@@ -44,4 +44,9 @@ export class CreateConfigDto {
   @Type(() => Number)
   @IsNumber()
   maternityLevy?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  occupationalHazardRate?: number;
 }

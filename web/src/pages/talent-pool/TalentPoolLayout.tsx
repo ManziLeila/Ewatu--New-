@@ -1,4 +1,5 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { ThemeToggle } from '../../components/app/ThemeToggle';
 
 export function TalentPoolLayout() {
   return (
@@ -7,6 +8,7 @@ export function TalentPoolLayout() {
         <div className="rec-sidebar__brand">
           <Link to="/platform" className="rec-sidebar__back">← Dashboard</Link>
           <div className="rec-sidebar__title">Talent Pool</div>
+          <ThemeToggle variant="adm" className="rec-sidebar__theme" />
         </div>
         <nav className="rec-nav">
           <NavLink to="/talent-pool/pools" className={({ isActive }) => `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`}>

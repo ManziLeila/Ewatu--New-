@@ -46,17 +46,26 @@ import { authFetch } from '../../lib/http';
 import { StatusBadge } from './StatusBadge';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
+import { hasAnyRole, isCompanyAdminOnly, isExecutiveLeader } from '../../lib/roles';
+import {
+  canSeeDashboardTab,
+  defaultDashboardTab,
+  primaryWorkspaceLabel,
+  type DashboardTabId,
+} from '../../lib/workspaceDashboard';
+import { fetchHrDashboardSummary, type HrDashboardSummary } from '../../payrollApi';
+import { CHART } from '../../lib/brand';
 import './dashboard.css';
 
 // ── Stage config ──────────────────────────────────────────────────────────────
 
 const STAGES = [
-  { stage: 'APPLIED',     label: 'Applied',     color: '#6366f1' },
-  { stage: 'SCREENED',    label: 'Screened',    color: '#3b82f6' },
-  { stage: 'SHORTLISTED', label: 'Shortlisted', color: '#06b6d4' },
-  { stage: 'INTERVIEWED', label: 'Interviewed', color: '#f59e0b' },
-  { stage: 'OFFERED',     label: 'Offered',     color: '#f5911e' },
-  { stage: 'PLACED',      label: 'Placed',      color: '#22c55e' },
+  { stage: 'APPLIED',     label: 'Applied',     color: CHART.primary },
+  { stage: 'SCREENED',    label: 'Screened',    color: CHART.info },
+  { stage: 'SHORTLISTED', label: 'Shortlisted', color: CHART.primary },
+  { stage: 'INTERVIEWED', label: 'Interviewed', color: CHART.warning },
+  { stage: 'OFFERED',     label: 'Offered',     color: CHART.secondary },
+  { stage: 'PLACED',      label: 'Placed',      color: CHART.success },
 ];
 
 // ── Icon helpers ──────────────────────────────────────────────────────────────
@@ -328,28 +337,28 @@ function RecruitmentDashboard({
           value={loading ? '…' : String(openJobs)}
           secondary={`${data?.jobs.length ?? 0} total jobs`}
           icon={<IcoBriefcase />}
-          color="#6366f1"
+          color={CHART.primary}
         />
         <KpiCard
           label="In Pipeline"
           value={loading ? '…' : String(inPipeline)}
           secondary={`${totalApps} total applications`}
           icon={<IcoUsers />}
-          color="#3b82f6"
+          color={CHART.info}
         />
         <KpiCard
           label="Placements"
           value={loading ? '…' : String(placements)}
           secondary={`${stageCounts['OFFERED'] ?? 0} pending offers`}
           icon={<IcoAward />}
-          color="#22c55e"
+          color={CHART.success}
         />
         <KpiCard
           label="Interviews"
           value={loading ? '…' : String(scheduled)}
           secondary={`${data?.interviews.length ?? 0} total`}
           icon={<IcoCalendar />}
-          color="#f5911e"
+          color={CHART.secondary}
         />
       </div>
 
@@ -408,6 +417,146 @@ function RecruitmentDashboard({
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// ── Workforce & HR Sub-Dashboard (HR / leadership) ───────────────────────────
+
+function WorkforceDashboard() {
+  const [summary, setSummary] = useState<HrDashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const { me } = useAdminContext();
+  const showExecutive = me ? isExecutiveLeader(me.roles) : false;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchHrDashboardSummary()
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch((e) => {
+        if (!cancelled) setErr(parseError(e));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return <p className="muted">Loading workforce snapshot…</p>;
+  }
+  if (err || !summary) {
+    return (
+      <div className="alert alert--err" role="alert">
+        {err ?? 'Could not load workforce data.'}
+      </div>
+    );
+  }
+
+  const perf = summary.performance;
+
+  return (
+    <>
+      {showExecutive && (
+        <div className="dash-role-banner dash-role-banner--exec">
+          <div>
+            <strong>Executive overview</strong>
+            <p className="muted small" style={{ margin: '0.25rem 0 0' }}>
+              Company-wide KPIs, approvals, and board-ready summaries live in the leadership workspace.
+            </p>
+          </div>
+          <Link to="/executive" className="btn btn--primary btn--sm">
+            Open executive dashboard
+          </Link>
+        </div>
+      )}
+
+      <div className="dash-kpi-grid">
+        <KpiCard
+          label="Headcount"
+          value={String(summary.headcount.total)}
+          secondary="active employees"
+          icon={<IcoUsers />}
+          color={CHART.primary}
+        />
+        <KpiCard
+          label="Leave queue"
+          value={String(summary.leave.pendingApprovals)}
+          secondary="pending approvals"
+          icon={<IcoBriefcase />}
+          color={CHART.warning}
+        />
+        <KpiCard
+          label="Attrition (12 mo)"
+          value={`${summary.turnover.ratePct.toFixed(1)}%`}
+          secondary={`${summary.turnover.terminatedLast12Months} departures`}
+          icon={<IcoAward />}
+          color={CHART.error}
+        />
+        <KpiCard
+          label="Payroll exceptions"
+          value={String(summary.payroll.exceptionsCount)}
+          secondary={`${summary.payroll.inProgressPeriods.length} period(s) in flight`}
+          icon={<IcoBriefcase />}
+          color={CHART.success}
+        />
+      </div>
+
+      <div className="dash-row-2">
+        <div className="dash-chart-card">
+          <h3 className="dash-chart-card__title">Performance cycle</h3>
+          {perf ? (
+            <>
+              <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>{perf.cycleName}</p>
+              <div className="dash-funnel">
+                <div className="dash-funnel__row">
+                  <span className="dash-funnel__label">Completion</span>
+                  <div className="dash-funnel__track">
+                    <div
+                      className="dash-funnel__fill"
+                      style={{ width: `${Math.min(100, perf.completionPct)}%`, background: CHART.primary }}
+                    />
+                  </div>
+                  <span className="dash-funnel__count">{perf.completionPct}%</span>
+                </div>
+              </div>
+              <p className="muted small" style={{ margin: '0.5rem 0 0' }}>
+                {perf.completedCount} / {perf.totalEmployees} complete
+                {perf.overdueCount > 0 ? ` · ${perf.overdueCount} overdue` : ''}
+              </p>
+            </>
+          ) : (
+            <p className="muted small">No active appraisal cycle.</p>
+          )}
+        </div>
+        <div className="dash-chart-card">
+          <h3 className="dash-chart-card__title">Quick actions</h3>
+          <div className="dash-quick-links">
+            <Link to="/platform/hr-dashboard" className="adm-module">
+              <span className="adm-module__icon">📊</span>
+              <span className="adm-module__name">Full HR dashboard</span>
+            </Link>
+            <Link to="/leave/approvals" className="adm-module">
+              <span className="adm-module__icon">✓</span>
+              <span className="adm-module__name">Leave approvals</span>
+            </Link>
+            <Link to="/payroll/dashboard" className="adm-module">
+              <span className="adm-module__icon">💳</span>
+              <span className="adm-module__name">Payroll operations</span>
+            </Link>
+            <Link to="/performance/cycles" className="adm-module">
+              <span className="adm-module__icon">🎯</span>
+              <span className="adm-module__name">Performance cycles</span>
+            </Link>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
@@ -477,7 +626,7 @@ function FinanceDashboard() {
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           }
-          color="#10b981"
+          color={CHART.success}
         />
         <KpiCard
           label="Est. Net Payout"
@@ -489,7 +638,7 @@ function FinanceDashboard() {
               <line x1="2" y1="10" x2="22" y2="10"/>
             </svg>
           }
-          color="#3b82f6"
+          color={CHART.info}
         />
         <KpiCard
           label="Est. Statutory Taxes"
@@ -503,7 +652,7 @@ function FinanceDashboard() {
               <line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
           }
-          color="#f59e0b"
+          color={CHART.warning}
         />
         <KpiCard
           label="Active Payees"
@@ -517,7 +666,7 @@ function FinanceDashboard() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           }
-          color="#6366f1"
+          color={CHART.primary}
         />
       </div>
 
@@ -672,7 +821,7 @@ function ClientDashboard() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           }
-          color="#3b82f6"
+          color={CHART.info}
         />
         <KpiCard
           label="Est. Monthly Billing"
@@ -684,7 +833,7 @@ function ClientDashboard() {
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           }
-          color="#10b981"
+          color={CHART.success}
         />
         <KpiCard
           label="Expiring ≤ 90 Days"
@@ -696,7 +845,7 @@ function ClientDashboard() {
               <polyline points="12 6 12 12 16 14"/>
             </svg>
           }
-          color="#f59e0b"
+          color={CHART.warning}
         />
         <KpiCard
           label="On-Bench Staff"
@@ -710,7 +859,7 @@ function ClientDashboard() {
               <line x1="9" y1="17" x2="13" y2="17"/>
             </svg>
           }
-          color="#ef4444"
+          color={CHART.error}
         />
       </div>
 
@@ -899,7 +1048,7 @@ function EmployeeDashboard({ me }: { me?: any }) {
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
           }
-          color="#22c55e"
+          color={CHART.success}
         />
         <KpiCard
           label="Active Goals"
@@ -912,7 +1061,7 @@ function EmployeeDashboard({ me }: { me?: any }) {
               <circle cx="12" cy="12" r="2"/>
             </svg>
           }
-          color="#3b82f6"
+          color={CHART.info}
         />
         <KpiCard
           label="Next Contract Review"
@@ -924,7 +1073,7 @@ function EmployeeDashboard({ me }: { me?: any }) {
               <polyline points="12 6 12 12 16 14"/>
             </svg>
           }
-          color="#f59e0b"
+          color={CHART.warning}
         />
         <KpiCard
           label="Latest Payslip"
@@ -936,7 +1085,7 @@ function EmployeeDashboard({ me }: { me?: any }) {
               <polyline points="14 2 14 8 20 8"/>
             </svg>
           }
-          color="#6366f1"
+          color={CHART.primary}
         />
       </div>
 
@@ -1109,13 +1258,15 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // Switcher Tab Permission Check — computed early so the recruitment fetch below
-  // can be skipped entirely for roles that will never see that tab.
   const userRoles = me?.roles || [];
-  const canSeeRecruitment = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'RECRUITER'].includes(r));
-  const canSeePayroll = userRoles.some(r => ['TENANT_ADMIN', 'FINANCE_OFFICER', 'PAYROLL_SPECIALIST', 'CFO'].includes(r));
-  const canSeeClient = userRoles.some(r => ['TENANT_ADMIN', 'CLIENT_ADMIN'].includes(r));
-  const canSeeEmployee = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'TENANT_STAFF', 'CLIENT_EMPLOYEE'].includes(r));
+  const canSeeWorkforce = canSeeDashboardTab(userRoles, 'workforce');
+  const canSeeRecruitment = canSeeDashboardTab(userRoles, 'recruitment');
+  const canSeePayroll = canSeeDashboardTab(userRoles, 'payroll');
+  const canSeeClient = canSeeDashboardTab(userRoles, 'client');
+  const canSeeEmployee = canSeeDashboardTab(userRoles, 'employee');
+  const roleLabel = primaryWorkspaceLabel(userRoles);
+  const adminHome = isCompanyAdminOnly(userRoles);
+  const roleDefaultTab = useMemo(() => defaultDashboardTab(userRoles), [userRoles]);
 
   const load = useCallback(async () => {
     if (!canSeeRecruitment) {
@@ -1193,31 +1344,64 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
   });
 
   const tabs = useMemo(() => {
-    const list: { id: 'recruitment' | 'payroll' | 'client' | 'employee'; label: string }[] = [];
+    const list: { id: DashboardTabId; label: string }[] = [];
+    if (canSeeDashboardTab(userRoles, 'company')) list.push({ id: 'company', label: 'Company admin' });
+    if (canSeeWorkforce) list.push({ id: 'workforce', label: 'Workforce & HR' });
     if (canSeeRecruitment) list.push({ id: 'recruitment', label: 'Hiring & ATS' });
     if (canSeePayroll) list.push({ id: 'payroll', label: 'Finance & Payroll' });
     if (canSeeClient) list.push({ id: 'client', label: 'Client Operations' });
-    if (canSeeEmployee) list.push({ id: 'employee', label: 'Employee Portal' });
+    if (canSeeEmployee) list.push({ id: 'employee', label: 'My work' });
     return list;
-  }, [canSeeRecruitment, canSeePayroll, canSeeClient, canSeeEmployee]);
+  }, [canSeeWorkforce, canSeeRecruitment, canSeePayroll, canSeeClient, canSeeEmployee]);
 
-  const [selectedTab, setSelectedTab] = useState<'recruitment' | 'payroll' | 'client' | 'employee'>('recruitment');
+  const [selectedTab, setSelectedTab] = useState<DashboardTabId>(roleDefaultTab);
 
   useEffect(() => {
-    if (tabs.length > 0 && !tabs.some(t => t.id === selectedTab)) {
-      setSelectedTab(tabs[0].id);
-    }
-  }, [tabs, selectedTab]);
+    setSelectedTab((prev) => {
+      if (tabs.some((t) => t.id === prev)) return prev;
+      if (tabs.some((t) => t.id === roleDefaultTab)) return roleDefaultTab;
+      return tabs[0]?.id ?? prev;
+    });
+  }, [tabs, roleDefaultTab]);
 
   return (
     <>
       <div className="dash-welcome">
         <div>
+          <p className="dash-welcome__role">{roleLabel} workspace</p>
           <h1 className="dash-welcome__greeting">{greeting}, {displayName}!</h1>
-          <p className="dash-welcome__sub">Here's what's happening in your workspace today.</p>
+          <p className="dash-welcome__sub">
+            {selectedTab === 'company' &&
+              'Users, branding, modules, and tenant setup — HR operations use dedicated HR accounts.'}
+            {selectedTab === 'workforce' && 'People, payroll health, and performance at a glance.'}
+            {selectedTab === 'recruitment' && 'Pipeline, interviews, and hiring progress.'}
+            {selectedTab === 'payroll' && 'Payroll runs, payouts, and finance exports.'}
+            {selectedTab === 'client' && 'Client outsourcing and billing operations.'}
+            {selectedTab === 'employee' && 'Your tasks, leave, payslips, and goals.'}
+          </p>
         </div>
         <div className="dash-welcome__date">{todayStr}</div>
       </div>
+
+      {adminHome && (
+        <div className="dash-role-banner" style={{ marginBottom: '1rem' }}>
+          <div>
+            <strong>Company administration</strong>
+            <p className="muted small" style={{ margin: '0.25rem 0 0' }}>
+              Manage users, branding, and modules here. Executive financial overview (YTD payroll cost, board
+              summaries) is only for Managing Director / CEO and CFO accounts.
+            </p>
+          </div>
+          <div className="dash-quick-links">
+            <Link to="/platform/users" className="btn btn--ghost btn--sm">
+              Team & roles
+            </Link>
+            <Link to="/platform/settings" className="btn btn--primary btn--sm">
+              Company settings
+            </Link>
+          </div>
+        </div>
+      )}
 
       {err && (
         <div className="alert alert--err" role="alert" style={{ marginBottom: '1rem' }}>
@@ -1228,12 +1412,14 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
         </div>
       )}
 
-      {/* Switcher Tab bar */}
-      {tabs.length > 1 && (
-        <div className="dash-tabs">
+      {tabs.length > 0 && (
+        <div className="dash-tabs" role="tablist" aria-label="Dashboard views">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedTab === tab.id}
               className={`dash-tab ${selectedTab === tab.id ? 'dash-tab--active' : ''}`}
               onClick={() => setSelectedTab(tab.id)}
             >
@@ -1242,6 +1428,16 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
           ))}
         </div>
       )}
+
+      {selectedTab === 'company' && adminHome && (
+        <p className="muted type-body" style={{ margin: '0 0 1.5rem', maxWidth: '40rem' }}>
+          Open <strong>Settings</strong> or <strong>Team</strong> in the sidebar to manage this company. HR
+          Dashboard, payroll, recruitment, and leave modules appear only for HR, finance, and staff roles — not
+          Company Admin.
+        </p>
+      )}
+
+      {selectedTab === 'workforce' && <WorkforceDashboard />}
 
       {selectedTab === 'recruitment' && (
         <RecruitmentDashboard
@@ -1395,10 +1591,10 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
       <div className="dash-row-cal">
         <CalendarCard />
         <div className="dash-kpi-grid dash-kpi-grid--2x2">
-          <KpiCard label="Total Companies" value={String(tenants.length)} secondary="registered tenants" icon={<IcoBriefcase />} color="#6366f1" />
-          <KpiCard label="Active" value={String(active)} secondary="running workspaces" icon={<IcoAward />} color="#22c55e" />
-          <KpiCard label="Pending Approval" value={String(pending.length)} secondary={pending.length > 0 ? 'need review' : 'all clear'} icon={<IcoCalendar />} color="#f59e0b" />
-          <KpiCard label="Rejected" value={String(rejected)} secondary="not approved" icon={<IcoUsers />} color="#ef4444" />
+          <KpiCard label="Total Companies" value={String(tenants.length)} secondary="registered tenants" icon={<IcoBriefcase />} color={CHART.primary} />
+          <KpiCard label="Active" value={String(active)} secondary="running workspaces" icon={<IcoAward />} color={CHART.success} />
+          <KpiCard label="Pending Approval" value={String(pending.length)} secondary={pending.length > 0 ? 'need review' : 'all clear'} icon={<IcoCalendar />} color={CHART.warning} />
+          <KpiCard label="Rejected" value={String(rejected)} secondary="not approved" icon={<IcoUsers />} color={CHART.error} />
         </div>
       </div>
 
@@ -1464,10 +1660,10 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
           <h3 className="dash-chart-card__title">Tenant status</h3>
           <DonutChart
             segments={[
-              { label: 'Active',  count: active,          color: '#22c55e' },
-              { label: 'Pending', count: pending.length,  color: '#f59e0b' },
-              { label: 'Rejected',count: rejected,        color: '#ef4444' },
-              { label: 'Other',   count: Math.max(0, tenants.length - active - pending.length - rejected), color: '#e2e8f0' },
+              { label: 'Active',  count: active,          color: CHART.success },
+              { label: 'Pending', count: pending.length,  color: CHART.warning },
+              { label: 'Rejected',count: rejected,        color: CHART.error },
+              { label: 'Other',   count: Math.max(0, tenants.length - active - pending.length - rejected), color: 'var(--color-neutral-200)' },
             ].filter(s => s.count > 0)}
           />
         </div>

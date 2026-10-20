@@ -88,6 +88,7 @@ model PayrollConfiguration {
   rssbMedical           Decimal  @default(0.075) @map("rssb_medical") @db.Decimal(6,4)
   cbhiRate              Decimal  @default(0.005) @map("cbhi_rate") @db.Decimal(6,4)
   maternityLevy         Decimal  @default(0.003) @map("maternity_levy") @db.Decimal(6,4)
+  occupationalHazardRate Decimal @default(0.02) @map("occupational_hazard_rate") @db.Decimal(6,4)
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -127,6 +128,8 @@ model Employee {
   bankBranch            String?          @map("bank_branch")
   emergencyContactName  String?          @map("emergency_contact_name")
   emergencyContactPhone String?          @map("emergency_contact_phone")
+  rssbNumber            String?          @map("rssb_number") @db.VarChar(32)
+  ramaEnabled           Boolean          @default(true) @map("rama_enabled")
   createdAt             DateTime         @default(now()) @map("created_at")
   updatedAt             DateTime         @updatedAt @map("updated_at")
 
@@ -440,6 +443,7 @@ model PayrollRecord {
   rssbMedical           Decimal       @default(0) @map("rssb_medical") @db.Decimal(15,2)
   cbhi                  Decimal       @default(0) @db.Decimal(15,2)
   maternityLevy         Decimal       @default(0) @map("maternity_levy") @db.Decimal(15,2)
+  occupationalHazard    Decimal       @default(0) @map("occupational_hazard") @db.Decimal(15,2)
   otherDeductions       Decimal       @default(0) @map("other_deductions") @db.Decimal(15,2)
   totalDeductions       Decimal       @map("total_deductions") @db.Decimal(15,2)
   netPay                Decimal       @map("net_pay") @db.Decimal(15,2)
@@ -589,6 +593,7 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
 }
 
 model LeaveType {

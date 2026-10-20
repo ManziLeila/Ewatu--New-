@@ -16,20 +16,21 @@ import {
   type TeamOutRequest,
 } from '../../payrollApi';
 import { fetchNotifications, markNotificationRead, type Notification } from '../../notificationApi';
+import { CHART, CSS_VAR } from '../../lib/brand';
 
 const TYPE_COLORS: Record<string, string> = {
-  ANNUAL: '#3b82f6',
-  SICK: '#22c55e',
-  MATERNITY: '#f59e0b',
-  PATERNITY: '#8b5cf6',
-  COMPASSIONATE: '#06b6d4',
-  STUDY: '#ec4899',
-  UNPAID: '#94a3b8',
+  ANNUAL: CHART.info,
+  SICK: CHART.success,
+  MATERNITY: CHART.warning,
+  PATERNITY: CHART.primary,
+  COMPASSIONATE: CHART.info,
+  STUDY: CHART.secondary,
+  UNPAID: CSS_VAR.textMuted,
 };
 
 function colorFor(code: string | undefined, index: number): string {
   if (code && TYPE_COLORS[code]) return TYPE_COLORS[code];
-  const palette = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444'];
+  const palette = [CHART.primary, CHART.success, CHART.warning, CHART.secondary, CHART.info, CHART.error];
   return palette[index % palette.length];
 }
 
@@ -41,7 +42,7 @@ function ProgressRing({ pct, color, size = 56 }: { pct: number; color: string; s
   const clamped = Math.max(0, Math.min(100, pct));
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden="true">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="6" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-neutral-200)" strokeWidth="6" />
       <g transform={`rotate(-90 ${cx} ${cy})`}>
         <circle
           cx={cx}
@@ -286,7 +287,7 @@ export function LeaveDashboardPage() {
           borderRadius: 'var(--radius, 12px)',
           padding: '1.75rem 2rem',
           marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, var(--accent, #0f4775), var(--accent-hover, #0a3557))',
+          background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
           color: '#fff',
           display: 'flex',
           justifyContent: 'space-between',
@@ -301,7 +302,7 @@ export function LeaveDashboardPage() {
             Manage your leave requests, check your balances, and track your leave history.
           </p>
         </div>
-        <Link to="/leave/apply" className="btn" style={{ background: '#ffffff', color: '#0f4775', border: '1px solid #ffffff', whiteSpace: 'nowrap' }}>
+        <Link to="/leave/apply" className="btn" style={{ background: 'var(--color-surface-light)', color: 'var(--color-primary)', border: '1px solid var(--color-surface-light)', whiteSpace: 'nowrap' }}>
           + Apply for Leave
         </Link>
       </div>
@@ -319,25 +320,25 @@ export function LeaveDashboardPage() {
           label="Days Used This Year"
           value={`${totalDaysTaken} / ${entitledTotal}`}
           secondary={`${currentYear} entitlement`}
-          color="#0891b2"
+          color={CHART.info}
         />
         <StatCard
           label="Pending Requests"
           value={String(pending.length)}
           secondary="awaiting approval"
-          color="#d97706"
+          color={CHART.warning}
         />
         <StatCard
           label="Next Public Holiday"
           value={nextHoliday ? nextHoliday.name : '—'}
           secondary={nextHoliday ? new Date(nextHoliday.nextDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'none configured'}
-          color="#7c3aed"
+          color={CHART.primary}
         />
         <StatCard
           label="Team Out (2 weeks)"
           value={String(teamOut.length)}
           secondary={teamOut.length ? 'teammates on leave' : 'nobody on leave'}
-          color="#16a34a"
+          color={CHART.success}
         />
       </div>
 

@@ -4,7 +4,7 @@
   place-items: center;
   background: var(--surface);
   color: var(--ink);
-  font-family: 'Plus Jakarta Sans', var(--font);
+  font-family: var(--font-sans);
 }
 
 .adm-shell {
@@ -15,7 +15,7 @@
   min-height: 100vh;
   background: var(--surface);
   color: var(--ink);
-  font-family: 'Plus Jakarta Sans', var(--font);
+  font-family: var(--font-sans);
 }
 
 /* Executive Dark Sidebar */
@@ -29,9 +29,9 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 4px 0 24px color-mix(in srgb, var(--color-primary-darker) 55%, transparent);
   z-index: 50;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--color-primary-soft);
 }
 
 .adm-sidebar__brand {
@@ -43,8 +43,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
   color: #ffffff;
   text-decoration: none;
   letter-spacing: -0.025em;
@@ -60,28 +60,28 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #f5911e 0%, #d97d0f 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+  color: var(--color-on-secondary);
   border-radius: 8px;
-  font-size: 1.05rem;
-  font-weight: 900;
-  box-shadow: 0 4px 14px rgba(245, 145, 30, 0.4);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  box-shadow: 0 4px 14px var(--color-secondary-glow);
   flex-shrink: 0;
 }
 
 .adm-sidebar__logo-text {
   color: #ffffff;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: -0.01em;
 }
 
 .adm-sidebar__subtitle {
   margin-top: 0.35rem;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: rgba(148, 163, 184, 0.75);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 700;
+  letter-spacing: var(--tracking-table-header);
+  font-weight: var(--font-medium);
 }
 
 /* Executive Dark Navigation */
@@ -94,10 +94,10 @@
 }
 
 .adm-nav__section {
-  font-size: 0.65rem;
-  font-weight: 800;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--tracking-table-header);
   color: rgba(148, 163, 184, 0.45);
   padding: 0.9rem 0.75rem 0.35rem;
   margin-top: 0.2rem;
@@ -114,8 +114,8 @@
   padding: 0.62rem 0.85rem;
   border-radius: 10px;
   color: rgba(226, 232, 240, 0.75);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -127,10 +127,10 @@
   transform: translateX(2px);
 }
 .adm-nav__link--active {
-  background: rgba(245, 145, 30, 0.18);
-  color: #ffc97a;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 12%, transparent);
 }
 .adm-nav__link--active::before {
   content: '';
@@ -139,13 +139,13 @@
   top: 15%;
   bottom: 15%;
   width: 3.5px;
-  background: #f5911e;
+  background: var(--color-secondary);
   border-radius: 0 4px 4px 0;
-  box-shadow: 0 0 10px rgba(245, 145, 30, 0.7);
+  box-shadow: 0 0 10px var(--color-secondary-glow);
 }
 .adm-nav__link--active:hover {
-  background: rgba(245, 145, 30, 0.24);
-  color: #ffd899;
+  background: color-mix(in srgb, var(--color-primary-soft) 70%, var(--color-primary-mid) 30%);
+  color: var(--color-on-primary);
 }
 
 .adm-nav__icon {
@@ -180,10 +180,10 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(245, 145, 30, 0.3) 0%, rgba(0, 70, 108, 0.6) 100%);
-  border: 1px solid rgba(245, 145, 30, 0.4);
-  color: #ffc97a;
-  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-secondary-soft) 0%, var(--color-primary-soft) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-secondary) 45%, transparent);
+  color: var(--color-secondary-light);
+  font-weight: var(--font-semibold);
   font-size: 0.82rem;
   display: flex;
   align-items: center;
@@ -259,28 +259,20 @@
 }
 
 .adm-page__title {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #f8fafc;
   margin: 0 0 0.4rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .adm-page__lead {
   margin: 0;
-  color: #94a3b8;
-  font-size: 0.95rem;
   max-width: 44rem;
-  line-height: 1.5;
 }
 
 /* Topbar Header (Dark) */
 .adm-topbar {
   height: 64px;
-  background: rgba(14, 23, 42, 0.85);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -291,9 +283,7 @@
 }
 
 .adm-topbar__title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #ffffff;
+  color: var(--ink);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -310,6 +300,42 @@
   color: #4ade80;
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.adm-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-alt) 70%, transparent);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.adm-theme-toggle:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-mid);
+}
+.adm-theme-toggle__label {
+  line-height: 1;
+}
+
+.pnav__actions .adm-theme-toggle {
+  border-color: color-mix(in srgb, currentColor 15%, transparent);
+  background: transparent;
+}
+.pnav--light .pnav__actions .adm-theme-toggle {
+  color: var(--color-neutral-700);
+  border-color: var(--color-neutral-300);
+}
+.pnav--dark .pnav__actions .adm-theme-toggle {
+  color: rgba(248, 250, 252, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .adm-topbar__pulse {
@@ -359,7 +385,7 @@
 
 .adm-kpi__label {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #94a3b8;
@@ -368,7 +394,7 @@
 
 .adm-kpi__value {
   font-size: 1.85rem;
-  font-weight: 800;
+  font-weight: var(--font-semibold);
   letter-spacing: -0.03em;
   line-height: 1.15;
   color: #f5911e;
@@ -409,7 +435,7 @@
 
 .adm-card__title {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: var(--font-semibold);
   margin: 0 0 0.85rem;
   color: #f8fafc;
   display: flex;
@@ -435,22 +461,29 @@
   flex-direction: column;
 }
 .adm-module:hover {
-  background: #14223d;
-  border-color: #00466c;
-  box-shadow: 0 10px 24px -4px rgba(0, 70, 108, 0.35);
+  background: color-mix(in srgb, var(--card) 70%, var(--color-primary) 30%);
+  border-color: var(--line-strong);
+  box-shadow: 0 10px 24px -4px color-mix(in srgb, var(--color-primary) 35%, transparent);
   transform: translateY(-2px);
   text-decoration: none;
 }
 
+.adm-module__name {
+  font-size: 0.88rem;
+  font-weight: var(--font-semibold);
+  color: var(--ink);
+  line-height: 1.35;
+}
+
 .adm-module__title {
   font-size: 0.95rem;
-  font-weight: 700;
-  color: #60a5fa;
+  font-weight: var(--font-semibold);
+  color: var(--ink);
   margin-bottom: 0.25rem;
 }
 
 .adm-module__desc {
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: var(--ink-muted);
   line-height: 1.4;
 }

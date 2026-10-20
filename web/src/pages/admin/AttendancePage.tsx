@@ -5,6 +5,7 @@ import {
   clockOut,
   fetchAttendanceNetworkPolicy,
   fetchMyAttendance,
+  fetchMyEmployee,
   updateAttendanceNetworkPolicy,
   type AttendanceNetworkPolicy,
   type AttendanceRecord,
@@ -30,6 +31,7 @@ export function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [employeeLinked, setEmployeeLinked] = useState<boolean | null>(null);
 
   const [canManagePolicy, setCanManagePolicy] = useState(false);
   const [policy, setPolicy] = useState<AttendanceNetworkPolicy | null>(null);
@@ -44,6 +46,13 @@ export function AttendancePage() {
     setLoading(true);
     try {
       const me = await fetchMe();
+      let emp = null;
+      try {
+        emp = await fetchMyEmployee();
+      } catch {
+        emp = null;
+      }
+      setEmployeeLinked(!!emp);
       setRecords(await fetchMyAttendance());
       if (me.roles?.some((r) => NETWORK_POLICY_ROLES.includes(r))) {
         setCanManagePolicy(true);
@@ -53,7 +62,7 @@ export function AttendancePage() {
         setCidrsText(p.allowedCidrs.join('\n'));
       }
     } catch (e) {
-      setError(parseApiError(e).message);
+      setError(parseApiError(e, 'payroll').message);
     } finally {
       setLoading(false);
     }
@@ -82,7 +91,7 @@ export function AttendancePage() {
       setPolicy((prev) => (prev ? { ...updated, callerIp: prev.callerIp } : updated));
       setPolicySaved(true);
     } catch (e) {
-      setPolicyError(parseApiError(e).message);
+      setPolicyError(parseApiError(e, 'payroll').message);
     } finally {
       setPolicyBusy(false);
     }
@@ -97,7 +106,7 @@ export function AttendancePage() {
       await clockIn();
       await load();
     } catch (e) {
-      setError(parseApiError(e).message);
+      setError(parseApiError(e, 'payroll').message);
     } finally {
       setBusy(false);
     }
@@ -110,11 +119,13 @@ export function AttendancePage() {
       await clockOut();
       await load();
     } catch (e) {
-      setError(parseApiError(e).message);
+      setError(parseApiError(e, 'payroll').message);
     } finally {
       setBusy(false);
     }
   };
+
+  const noEmployee = employeeLinked === false;
 
   if (loading) {
     return (
@@ -130,6 +141,12 @@ export function AttendancePage() {
         <h1 className="adm-page__title">Attendance</h1>
         <p className="adm-page__lead">Clock in and out, and review your recent attendance history.</p>
       </header>
+
+      {noEmployee && (
+        <div className="alert alert--warn" role="status">
+          {parseApiError(new Error('No linked employee record'), 'payroll').message}
+        </div>
+      )}
 
       {error && <div className="alert alert--err">{error}</div>}
 
@@ -149,10 +166,20 @@ export function AttendancePage() {
             <div className="muted">Not clocked in yet.</div>
           )}
         </div>
-        <button type="button" className="btn btn--primary" disabled={busy || !!today?.clockInAt} onClick={onClockIn}>
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={busy || noEmployee || !!today?.clockInAt}
+          onClick={onClockIn}
+        >
           Clock In
         </button>
-        <button type="button" className="btn" disabled={busy || !today?.clockInAt || !!today?.clockOutAt} onClick={onClockOut}>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy || noEmployee || !today?.clockInAt || !!today?.clockOutAt}
+          onClick={onClockOut}
+        >
           Clock Out
         </button>
       </div>

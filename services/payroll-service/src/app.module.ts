@@ -23,12 +23,14 @@ import { GrievancesModule } from './grievances/grievances.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { TrainingModule } from './training/training.module';
 import { DocumentsModule } from './documents/documents.module';
+import { PayrollCommonModule } from './common/payroll-common.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     CommonAuthModule,
+    PayrollCommonModule,
     PrismaModule,
     HealthModule,
     PayrollConfigModule,

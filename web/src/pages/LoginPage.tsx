@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { loginRequest } from '../api';
+import { fetchMe, loginRequest, resendVerificationRequest } from '../api';
+import { postLoginLandingPath } from '../lib/postLoginLanding';
 import { setRememberMe } from '../auth/token';
 import { AuthErrorAlert } from '../components/AuthErrorAlert';
 import { AuthLayout } from '../components/AuthLayout';
@@ -21,6 +22,9 @@ export function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState<ParsedApiError | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const needsEmailActivation = err?.code === 'EMAIL_NOT_VERIFIED' || /email_not_verified/i.test(err?.message ?? '');
 
   if (loggedIn) {
     return <Navigate to={returnPath} replace />;
@@ -29,13 +33,19 @@ export function LoginPage() {
   const onSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     setErr(null);
+    setResendMsg(null);
     setBusy(true);
     try {
       setRememberMe(remember);
       await loginRequest(email.trim(), password);
-      navigate(returnPath, { replace: true });
+      const me = await fetchMe();
+      const dest =
+        returnPath !== '/platform' && returnPath !== '/'
+          ? returnPath
+          : postLoginLandingPath(me.roles);
+      navigate(dest, { replace: true });
     } catch (e) {
-      setErr(parseApiError(e));
+      setErr(parseApiError(e, 'auth'));
     } finally {
       setBusy(false);
     }
@@ -60,6 +70,30 @@ export function LoginPage() {
       <h2 className="auth-heading auth-heading--compact">Sign in</h2>
       <p className="auth-lead auth-lead--tight">Enter your credentials to continue.</p>
       {err && <AuthErrorAlert error={err} />}
+      {needsEmailActivation && (
+        <div className="alert alert--ok" style={{ marginBottom: '1rem' }}>
+          <p style={{ margin: '0 0 0.5rem' }}>{resendMsg ?? 'Did not get the email?'}</p>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            disabled={resendBusy || !email.trim()}
+            onClick={async () => {
+              setResendBusy(true);
+              setResendMsg(null);
+              try {
+                const r = await resendVerificationRequest(email.trim());
+                setResendMsg(r.message);
+              } catch (e) {
+                setResendMsg(parseApiError(e, 'auth').message);
+              } finally {
+                setResendBusy(false);
+              }
+            }}
+          >
+            {resendBusy ? 'Sending…' : 'Resend activation email'}
+          </button>
+        </div>
+      )}
       <form className="auth-form" onSubmit={onSubmit}>
         <label className="auth-label">
           Email address

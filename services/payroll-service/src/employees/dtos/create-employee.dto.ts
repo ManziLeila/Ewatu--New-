@@ -1,5 +1,6 @@
 import { EmployeeType } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsEnum,
@@ -116,4 +117,13 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   managerId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  rssbNumber?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ramaEnabled?: boolean;
 }

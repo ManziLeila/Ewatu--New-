@@ -158,6 +158,13 @@ export function PayrollEmployeeDetailPage() {
           <p>Start date: {(employee as any).startDate?.slice(0, 10) ?? '-'}</p>
           <p>End date: {(employee as any).endDate?.slice(0, 10) ?? '-'}</p>
           <p>Status: {(employee as any).employmentStatus ?? '-'}</p>
+          <p>
+            RSSB number: {(employee as any).rssbNumber ?? 'Not on file'}{' '}
+            {!((employee as any).rssbNumber) ? (
+              <span className="muted small">(optional — payroll still uses Rwanda statutory rates from salary)</span>
+            ) : null}
+          </p>
+          <p>RAMA insurance: {(employee as any).ramaEnabled === false ? 'Excluded' : 'Included'}</p>
           <h3>Salary</h3>
           <p>Basic salary: {(employee as any).basicSalary ?? '-'}</p>
           <p>Housing allowance: {(employee as any).housingAllowance ?? '-'}</p>

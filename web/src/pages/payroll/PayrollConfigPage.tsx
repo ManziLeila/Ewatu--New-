@@ -14,6 +14,7 @@ const RWANDA_DEFAULTS = {
   rssbMedical: 0.075,
   cbhiRate: 0.005,
   maternityLevy: 0.003,
+  occupationalHazardRate: 0.02,
 };
 
 export function PayrollConfigPage() {
@@ -44,6 +45,7 @@ export function PayrollConfigPage() {
         rssbMedical: Number(data.rssbMedical ?? RWANDA_DEFAULTS.rssbMedical),
         cbhiRate: Number(data.cbhiRate ?? RWANDA_DEFAULTS.cbhiRate),
         maternityLevy: Number(data.maternityLevy ?? RWANDA_DEFAULTS.maternityLevy),
+        occupationalHazardRate: Number(data.occupationalHazardRate ?? RWANDA_DEFAULTS.occupationalHazardRate),
       });
     } catch (e) {
       setLoadedClientId(null);
@@ -78,6 +80,7 @@ export function PayrollConfigPage() {
       rssbMedical: form.rssbMedical,
       cbhiRate: form.cbhiRate,
       maternityLevy: form.maternityLevy,
+      occupationalHazardRate: form.occupationalHazardRate,
     };
     try {
       if (isNew || loadedClientId !== clientId.trim()) {
@@ -199,6 +202,16 @@ export function PayrollConfigPage() {
                   step="0.0001"
                   value={form.maternityLevy}
                   onChange={(e) => setForm((p) => ({ ...p, maternityLevy: Number(e.target.value) }))}
+                />
+              </label>
+              <label className="rec-form__label">
+                Occupational hazard — employer (2%)
+                <input
+                  className="auth-input"
+                  type="number"
+                  step="0.0001"
+                  value={form.occupationalHazardRate}
+                  onChange={(e) => setForm((p) => ({ ...p, occupationalHazardRate: Number(e.target.value) }))}
                 />
               </label>
             </div>

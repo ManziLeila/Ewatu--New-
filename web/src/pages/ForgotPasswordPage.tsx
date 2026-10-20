@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
       await forgotPasswordRequest(email.trim());
       setSent(true);
     } catch (e) {
-      setErr(parseApiError(e));
+      setErr(parseApiError(e, 'auth'));
     } finally {
       setBusy(false);
     }

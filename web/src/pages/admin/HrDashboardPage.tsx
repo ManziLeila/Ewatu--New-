@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchHrDashboardSummary, type HrDashboardSummary } from '../../payrollApi';
 import { fetchJobs, fetchApplications, type Job, type Application } from '../../recruitmentApi';
+import { CHART } from '../../lib/brand';
 import { parseApiError } from '../../lib/parseApiError';
 import './dashboard.css';
 
@@ -105,15 +106,15 @@ export function HrDashboardPage() {
       </header>
 
       <div className="dash-row-2" style={{ marginBottom: '1.25rem' }}>
-        <KpiCard label="Headcount" value={String(headcount.total)} secondary="active employees" color="#6366f1" />
-        <KpiCard label="Pending Leave Approvals" value={String(leave.pendingApprovals)} secondary="awaiting a decision" color="#f59e0b" />
+        <KpiCard label="Headcount" value={String(headcount.total)} secondary="active employees" color={CHART.primary} />
+        <KpiCard label="Pending Leave Approvals" value={String(leave.pendingApprovals)} secondary="awaiting a decision" color={CHART.warning} />
         <KpiCard
           label="Payroll Exceptions"
           value={String(payroll.exceptionsCount)}
           secondary={`${payroll.inProgressPeriods.length} cycle(s) in progress`}
-          color={payroll.exceptionsCount > 0 ? '#ef4444' : '#22c55e'}
+          color={payroll.exceptionsCount > 0 ? CHART.error : CHART.success}
         />
-        <KpiCard label="Turnover (12mo)" value={`${turnover.ratePct}%`} secondary={`${turnover.terminatedLast12Months} exits`} color="#0ea5e9" />
+        <KpiCard label="Turnover (12mo)" value={`${turnover.ratePct}%`} secondary={`${turnover.terminatedLast12Months} exits`} color={CHART.info} />
       </div>
 
       <div className="dash-row-2" style={{ marginBottom: '1.25rem' }}>
@@ -121,25 +122,25 @@ export function HrDashboardPage() {
           label="Open Grievances"
           value={String(grievances.openCount + grievances.investigatingCount)}
           secondary={`${grievances.openCount} open, ${grievances.investigatingCount} investigating`}
-          color={grievances.openCount > 0 ? '#ef4444' : '#22c55e'}
+          color={grievances.openCount > 0 ? CHART.error : CHART.success}
         />
         <KpiCard
           label="Attendance On-Time Rate"
           value={attendance.onTimeRatePct === null ? '—' : `${attendance.onTimeRatePct}%`}
           secondary={`${attendance.lateCount30d} late, ${attendance.absentCount30d} absent (30d)`}
-          color="#8b5cf6"
+          color={CHART.primary}
         />
         <KpiCard
           label="Training Compliance"
           value={avgTrainingCompletion === null ? '—' : `${avgTrainingCompletion}%`}
           secondary={`${training.length} mandatory course(s)`}
-          color="#14b8a6"
+          color={CHART.success}
         />
         <KpiCard
           label="Probation Ending Soon"
           value={String(lifecycleAlerts.probationsEndingSoon.length)}
           secondary="next 90 days"
-          color="#f59e0b"
+          color={CHART.warning}
         />
       </div>
 

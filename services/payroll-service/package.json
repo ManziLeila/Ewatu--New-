@@ -17,8 +17,12 @@
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },
+  "prisma": {
+    "seed": "npx ts-node --transpile-only prisma/seed.ts"
+  },
   "dependencies": {
     "@ewatu/common-auth": "file:../../libs/common-auth",
+    "@ewatu/module-sdk": "file:../../libs/module-sdk",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^10.0.0",

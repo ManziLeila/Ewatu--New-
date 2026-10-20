@@ -1,0 +1,140 @@
+.pef-page {
+  max-width: 1120px;
+}
+
+.pef-page__title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.pef-segment {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.35rem 1.35rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pef-segment__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.pef-segment__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.pef-segment__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pef-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 960px) {
+  .pef-calc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pef-calc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pef-calc-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+  min-height: 5.5rem;
+}
+
+.pef-calc-card--wide {
+  grid-column: span 1;
+}
+
+.pef-calc-card__value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 0.25rem;
+  color: var(--ink);
+}
+
+.pef-calc-card__title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+}
+
+.pef-calc-card__hint {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.pef-calc-notice {
+  color: var(--ink-muted);
+}
+
+.pef-calc-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+.pef-calc-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.2rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pef-calc-lines span:last-child {
+  font-weight: 500;
+}
+
+.pef-statutory {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.pef-validated {
+  font-size: 0.85rem;
+  color: var(--success, #0d9488);
+  margin: 0 0 0.75rem;
+}
+
+.pef-calc-notice {
+  margin: 0 0 0.85rem;
+  line-height: 1.45;
+}

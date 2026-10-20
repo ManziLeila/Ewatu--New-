@@ -1,7 +1,29 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import {
+  Briefcase,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { fetchMe } from '../../api';
+import { ThemeToggle } from '../../components/app/ThemeToggle';
 import { hasAnyRole, PLACEMENTS_ROLES, RECRUITMENT_ROLES } from '../../lib/roles';
+
+type RecNavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+const REC_NAV: RecNavItem[] = [
+  { to: '/recruitment/jobs', label: 'Jobs', icon: Briefcase },
+  { to: '/recruitment/candidates', label: 'Candidates', icon: Users },
+  { to: '/recruitment/interviews', label: 'Interviews', icon: CalendarDays },
+  { to: '/recruitment/offers', label: 'Offers', icon: FileText },
+];
 
 export function RecruitmentLayout() {
   const [roles, setRoles] = useState<string[]>([]);
@@ -30,44 +52,23 @@ export function RecruitmentLayout() {
         <div className="rec-sidebar__brand">
           <Link to="/platform" className="rec-sidebar__back">← Dashboard</Link>
           <div className="rec-sidebar__title">Recruitment</div>
+          <ThemeToggle variant="adm" className="rec-sidebar__theme" />
         </div>
-        <nav className="rec-nav">
-          <NavLink
-            to="/recruitment/jobs"
-            className={({ isActive }) =>
-              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
-            }
-          >
-            <span className="rec-nav__icon">📋</span>
-            Jobs
-          </NavLink>
-          <NavLink
-            to="/recruitment/candidates"
-            className={({ isActive }) =>
-              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
-            }
-          >
-            <span className="rec-nav__icon">👥</span>
-            Candidates
-          </NavLink>
-          <NavLink
-            to="/recruitment/interviews"
-            className={({ isActive }) =>
-              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
-            }
-          >
-            <span className="rec-nav__icon">🗓</span>
-            Interviews
-          </NavLink>
-          <NavLink
-            to="/recruitment/offers"
-            className={({ isActive }) =>
-              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
-            }
-          >
-            <span className="rec-nav__icon">📄</span>
-            Offers
-          </NavLink>
+        <nav className="rec-nav" aria-label="Recruitment">
+          {REC_NAV.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
+              }
+            >
+              <span className="rec-nav__icon" aria-hidden>
+                <Icon strokeWidth={2} />
+              </span>
+              {label}
+            </NavLink>
+          ))}
           {showPlacements && (
             <NavLink
               to="/recruitment/placements"
@@ -75,7 +76,9 @@ export function RecruitmentLayout() {
                 `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
               }
             >
-              <span className="rec-nav__icon">✅</span>
+              <span className="rec-nav__icon" aria-hidden>
+                <CheckCircle2 strokeWidth={2} />
+              </span>
               Placements
             </NavLink>
           )}

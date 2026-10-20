@@ -9,6 +9,12 @@ const FRIENDLY_BY_CODE: Record<
   string,
   Pick<ParsedApiError, 'title' | 'message' | 'variant'>
 > = {
+  EMAIL_NOT_VERIFIED: {
+    title: 'Activate your email',
+    message:
+      'This account is not activated yet. Open the link we sent to your inbox, or resend a new activation email below.',
+    variant: 'warning',
+  },
   RATE_LIMIT_EXCEEDED: {
     title: 'Please wait before trying again',
     message:
@@ -52,6 +58,17 @@ function fromNestMessage(message: string): ParsedApiError | null {
       variant: 'error',
     };
   }
+  if (lower.includes('no linked employee record') || lower.includes('no employee record is linked')) {
+    return {
+      title: 'No employee profile',
+      message:
+        'Your login is not linked to an employee record yet. Ask HR to add you in Payroll → Employees with the same email, or sign in with a staff account that is already on the roster.',
+      variant: 'warning',
+    };
+  }
+  if (lower.includes('email_not_verified')) {
+    return { ...FRIENDLY_BY_CODE.EMAIL_NOT_VERIFIED, code: 'EMAIL_NOT_VERIFIED' };
+  }
   if (lower.includes('verify your email') || lower.includes('email verification')) {
     return {
       title: 'Email not verified',
@@ -62,16 +79,49 @@ function fromNestMessage(message: string): ParsedApiError | null {
   return null;
 }
 
+function stripHttpStatusPrefix(raw: string): { status?: number; body: string } {
+  const m = raw.match(/^(\d{3}):\s*(.+)$/s);
+  if (m) return { status: Number(m[1]), body: m[2].trim() };
+  return { body: raw };
+}
+
 function extractPayload(raw: string): Record<string, unknown> | null {
+  const { body } = stripHttpStatusPrefix(raw);
   try {
-    return JSON.parse(raw) as Record<string, unknown>;
+    return JSON.parse(body) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
+export type ParseApiErrorContext = 'auth' | 'payroll' | 'default';
+
+const NETWORK_MESSAGES: Record<
+  ParseApiErrorContext,
+  Pick<ParsedApiError, 'title' | 'message'>
+> = {
+  auth: {
+    title: 'Connection problem',
+    message:
+      'Could not reach the sign-in service. Run npm run dev (identity on port 3011), wait until services finish starting, then refresh and try again.',
+  },
+  payroll: {
+    title: 'Connection problem',
+    message:
+      'Could not reach the payroll service. Check that npm run dev is running and refresh this page.',
+  },
+  default: {
+    title: 'Connection problem',
+    message:
+      'Could not reach the server. Check that npm run dev is running and refresh this page.',
+  },
+};
+
 /** Turn API / fetch error bodies into user-facing copy (never raw JSON). */
-export function parseApiError(e: unknown): ParsedApiError {
+export function parseApiError(
+  e: unknown,
+  context: ParseApiErrorContext = 'default',
+): ParsedApiError {
   const raw = e instanceof Error ? e.message : String(e);
 
   const payload = extractPayload(raw);
@@ -117,6 +167,10 @@ export function parseApiError(e: unknown): ParsedApiError {
 
   const friendly = fromNestMessage(raw);
   if (friendly) return friendly;
+
+  if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+    return { ...NETWORK_MESSAGES[context], variant: 'error' };
+  }
 
   return {
     title: 'Something went wrong',

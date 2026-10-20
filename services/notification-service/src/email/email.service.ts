@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 
 export type EmailTemplate =
   | 'verify-email'
+  | 'password-reset'
   | 'tenant-approved'
   | 'tenant-rejected'
   | 'welcome'
@@ -83,6 +84,12 @@ export class EmailService implements OnModuleInit {
           subject: `Your E-Watu application for ${payload.companyName} is under review`,
           text: `Thanks for applying! Your application for ${payload.companyName} is now under review by our team. You'll receive another email as soon as it's approved and your workspace is ready.`,
           html: `<p>Thanks for applying!</p><p>Your application for <strong>${payload.companyName}</strong> is now under review by our team. You'll receive another email as soon as it's approved and your workspace is ready.</p>`,
+        };
+      case 'password-reset':
+        return {
+          subject: 'Reset your E-Watu password',
+          text: `Hello,\n\nUse this link to reset your password (valid for 1 hour):\n\n${payload.resetLink}\n\nIf you did not request this, ignore this email.\n\n— E-Watu`,
+          html: `<p>Hello,</p><p>Use the link below to reset your password (valid for 1 hour):</p><p><a href="${payload.resetLink}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p><p>— E-Watu</p>`,
         };
       default:
         return {

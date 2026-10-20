@@ -1,9 +1,19 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { fetchMe } from '../api';
-import { hasAnyRole, PAYROLL_ROLES, RECRUITMENT_ROLES, TALENT_POOL_ROLES } from '../lib/roles';
+import {
+  hasAnyRole,
+  HR_DASHBOARD_ROLES,
+  PAYROLL_ROLES,
+  RECRUITMENT_ROLES,
+  TALENT_POOL_ROLES,
+  isCompanyAdminOnly,
+  isExecutiveLeader,
+} from '../lib/roles';
 import { clearAuthTokens } from '../auth/token';
 import { isAuthFailureStatus } from '../lib/auth-session';
+import { ThemeToggle } from '../components/app/ThemeToggle';
+import { useCapabilities } from '../lib/capabilities';
 import './admin-layout.css';
 
 export type AdminMe = {
@@ -217,6 +227,8 @@ function NavItem({ to, icon, label, end }: {
 
 export function AdminLayout() {
   const navigate = useNavigate();
+  const { hasModule, loading: capabilitiesLoading } = useCapabilities();
+  const licensed = (moduleId: string) => capabilitiesLoading || hasModule(moduleId);
   const [me, setMe] = useState<AdminMe | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -250,14 +262,19 @@ export function AdminLayout() {
   // A tenant that isn't ACTIVE/TRIAL only gets the dashboard's status banner — everything else
   // 403s server-side (TenantStatusGuard) anyway, so don't offer nav links that would just fail.
   const tenantActive = !me?.tenant_id || ['ACTIVE', 'TRIAL'].includes(me.tenant_status ?? 'ACTIVE');
-  const showRecruitment = me ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
-  const showTalentPool = me ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
-  const showPayroll = me ? hasAnyRole(me.roles, PAYROLL_ROLES) : false;
-  // Leave/Performance are self-service — every employee needs them, not just payroll-admin roles.
-  const showLeaveAndPerformance = me ? hasAnyRole(me.roles, [...PAYROLL_ROLES, 'TENANT_STAFF']) : false;
+  const companyAdminOnly = me ? isCompanyAdminOnly(me.roles) : false;
+  const showRecruitment = me && !companyAdminOnly ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
+  const showTalentPool = me && !companyAdminOnly ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
+  const showPayroll = me && !companyAdminOnly ? hasAnyRole(me.roles, PAYROLL_ROLES) : false;
+  // Leave/Performance — staff & HR/finance roles (not Company Admin-only accounts).
+  const showLeaveAndPerformance =
+    me && !companyAdminOnly
+      ? hasAnyRole(me.roles, [...PAYROLL_ROLES, 'TENANT_STAFF', 'MANAGING_DIRECTOR'])
+      : false;
   const showTeamManagement = me ? hasAnyRole(me.roles, ['TENANT_ADMIN']) : false;
   const showDepartments = me ? hasAnyRole(me.roles, ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR']) : false;
-  const showHrDashboard = me ? hasAnyRole(me.roles, ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR']) : false;
+  const showHrDashboard = me ? hasAnyRole(me.roles, [...HR_DASHBOARD_ROLES]) : false;
+  const showExecutive = me ? isExecutiveLeader(me.roles) : false;
   const showSettings = me ? hasAnyRole(me.roles, ['TENANT_ADMIN']) : false;
   const displayName = me?.username ?? me?.email ?? 'User';
   const initials = displayName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -307,7 +324,7 @@ export function AdminLayout() {
             <span className="adm-sidebar__logo-text">-Watu</span>
           </Link>
           <div className="adm-sidebar__subtitle">
-            {isSuper ? 'Platform control' : 'HR Platform'}
+            {isSuper ? 'Platform control' : companyAdminOnly ? 'Company admin' : 'HR Platform'}
           </div>
         </div>
 
@@ -326,25 +343,28 @@ export function AdminLayout() {
 
           {me.tenant_id && !isSuper && tenantActive && (
             <>
+              {showExecutive && (
+                <NavItem to="/executive" icon={<IcoTarget />} label="Executive" />
+              )}
               {showHrDashboard && (
                 <NavItem to="/platform/hr-dashboard" icon={<IcoBarChart />} label="HR Dashboard" />
               )}
-              {showRecruitment && (
+              {showRecruitment && licensed('recruitment') && (
                 <NavItem to="/recruitment" icon={<IcoRecruitment />} label="Recruitment" />
               )}
-              {showPayroll && (
+              {showPayroll && licensed('payroll') && (
                 <NavItem to="/payroll" icon={<IcoPayroll />} label="Payroll" />
               )}
-              {showLeaveAndPerformance && (
-                <>
-                  <NavItem to="/leave" icon={<IcoCalendar />} label="Leave Management" />
-                  <NavItem to="/performance/goals" icon={<IcoCheckSquare />} label="Performance" />
-                </>
+              {showLeaveAndPerformance && licensed('leave') && (
+                <NavItem to="/leave" icon={<IcoCalendar />} label="Leave Management" />
+              )}
+              {showLeaveAndPerformance && licensed('performance') && (
+                <NavItem to="/performance/goals" icon={<IcoCheckSquare />} label="Performance" />
               )}
               {me.roles.includes('CLIENT_ADMIN') && (
                 <NavItem to="/client-portal/payroll" icon={<IcoReceipt />} label="Payroll Approvals" />
               )}
-              {showTalentPool && (
+              {showTalentPool && licensed('talent-pool') && (
                 <>
                   <NavItem to="/talent-pool/pools" icon={<IcoTarget />} label="Talent Pools" />
                   <NavItem to="/talent-pool/profiles" icon={<IcoUsers />} label="Pool Profiles" />
@@ -422,6 +442,7 @@ export function AdminLayout() {
             <span>E-Watu Enterprise Suite</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <ThemeToggle variant="adm" />
             <div className="adm-topbar__status-pill">
               <span className="adm-topbar__pulse"></span>
               <span>{me.tenant_status ? `Tenant ${me.tenant_status}` : 'System Operational'}</span>

@@ -32,7 +32,7 @@ export function ResetPasswordPage() {
       await resetPasswordRequest(token, newPassword);
       navigate('/login?reset=1', { replace: true });
     } catch (e) {
-      setErr(parseApiError(e));
+      setErr(parseApiError(e, 'auth'));
     } finally {
       setBusy(false);
     }

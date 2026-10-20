@@ -31,10 +31,13 @@ export class HrDashboardService {
       this.getTrainingCompliance(tenantId),
       this.getGrievanceSummary(tenantId),
     ]);
+    const finance = await this.getPayrollFinanceSummary(tenantId);
+
     return {
       headcount,
       leave,
       payroll,
+      finance,
       lifecycleAlerts,
       performance,
       turnover,
@@ -42,6 +45,85 @@ export class HrDashboardService {
       attendance,
       training,
       grievances,
+    };
+  }
+
+  /** Executive / finance KPIs from locked payroll data (not GL revenue). */
+  private async getPayrollFinanceSummary(tenantId: string) {
+    const year = new Date().getFullYear();
+    const allFinalized = await this.prisma.payrollPeriod.findMany({
+      where: { tenantId, status: 'FINALIZED' },
+      include: { records: { select: { grossPay: true, netPay: true } } },
+      orderBy: [{ periodYear: 'asc' }, { periodMonth: 'asc' }],
+    });
+    const finalizedYtd = allFinalized.filter((p) => p.periodYear === year);
+
+    let ytdGrossPay = 0;
+    let ytdNetPay = 0;
+    for (const p of finalizedYtd) {
+      for (const r of p.records) {
+        ytdGrossPay += Number(r.grossPay);
+        ytdNetPay += Number(r.netPay);
+      }
+    }
+
+    let allTimeNetPay = 0;
+    for (const p of allFinalized) {
+      for (const r of p.records) allTimeNetPay += Number(r.netPay);
+    }
+
+    const latest = allFinalized[allFinalized.length - 1];
+    let latestPeriodNetPay = 0;
+    let latestPeriodGrossPay = 0;
+    if (latest) {
+      for (const r of latest.records) {
+        latestPeriodNetPay += Number(r.netPay);
+        latestPeriodGrossPay += Number(r.grossPay);
+      }
+    }
+
+    const monthlyTrend = allFinalized.slice(-12).map((p) => {
+      let net = 0;
+      for (const r of p.records) net += Number(r.netPay);
+      return { periodYear: p.periodYear, periodMonth: p.periodMonth, netPay: net };
+    });
+    const monthsWithData = allFinalized.length;
+    const avgNetPerMonth = monthsWithData > 0 ? allTimeNetPay / monthsWithData : 0;
+
+    const activeSalaries = await this.prisma.employee.aggregate({
+      where: { tenantId, employmentStatus: 'ACTIVE' },
+      _sum: {
+        basicSalary: true,
+        housingAllowance: true,
+        transportAllowance: true,
+        otherAllowances: true,
+      },
+    });
+    const estimatedMonthlyGross =
+      Number(activeSalaries._sum.basicSalary ?? 0) +
+      Number(activeSalaries._sum.housingAllowance ?? 0) +
+      Number(activeSalaries._sum.transportAllowance ?? 0) +
+      Number(activeSalaries._sum.otherAllowances ?? 0);
+
+    return {
+      currency: 'RWF',
+      ytdGrossPay,
+      ytdNetPay,
+      allTimeNetPay,
+      avgNetPerMonth,
+      monthsWithData,
+      finalizedRunsYtd: finalizedYtd.length,
+      latestPeriod:
+        latest != null
+          ? {
+              periodYear: latest.periodYear,
+              periodMonth: latest.periodMonth,
+              grossPay: latestPeriodGrossPay,
+              netPay: latestPeriodNetPay,
+            }
+          : null,
+      monthlyTrend,
+      estimatedMonthlyGross,
     };
   }
 

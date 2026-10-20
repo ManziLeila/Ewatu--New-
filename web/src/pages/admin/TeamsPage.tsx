@@ -194,7 +194,7 @@ function TeamCard({
               key={m.id}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.4rem',
-                background: '#0f766e33', padding: '0.3rem 0.5rem', borderRadius: '6px', fontSize: '0.82rem',
+                background: 'var(--color-primary-soft)', padding: '0.3rem 0.5rem', borderRadius: '6px', fontSize: '0.82rem',
               }}
             >
               <span>👑 {m.employee?.firstName} {m.employee?.lastName}</span>

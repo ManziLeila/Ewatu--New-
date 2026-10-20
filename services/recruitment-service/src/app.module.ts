@@ -11,11 +11,13 @@ import { OffersModule } from './offers/offers.module';
 import { PlacementsModule } from './placements/placements.module';
 import { PublicModule } from './public/public.module';
 import { DocumentsModule } from './documents/documents.module';
+import { RecruitmentCommonModule } from './common/common.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonAuthModule,
+    RecruitmentCommonModule,
     PrismaModule,
     HealthModule,
     JobsModule,

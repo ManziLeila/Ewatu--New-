@@ -1,0 +1,15 @@
+{
+  "name": "@ewatu/module-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Module catalog, manifest types, and product module IDs for E-Watu ERP",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.3"
+  }
+}

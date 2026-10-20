@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { EwatuRole, getPermissionsForRoles } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashToken, generateRawToken } from '../common/token-hash';
+import { dispatchEmail } from '../common/email.dispatch';
 import { dispatchNotification } from '../common/notification.dispatch';
 import { RefreshTokenService } from './refresh-token.service';
 import type { LoginDto } from './dtos/login.dto';
@@ -22,6 +23,7 @@ const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 export const ACCOUNT_LOCKED_MESSAGE = 'ACCOUNT_LOCKED';
+export const EMAIL_NOT_VERIFIED_MESSAGE = 'EMAIL_NOT_VERIFIED';
 
 @Injectable()
 export class AuthService {
@@ -93,6 +95,11 @@ export class AuthService {
     if (!user.active) {
       throw new UnauthorizedException('This account has been deactivated');
     }
+    if (!user.emailVerified) {
+      throw new UnauthorizedException(
+        `Please verify your email before signing in. Check your inbox for the activation link. ${EMAIL_NOT_VERIFIED_MESSAGE}`,
+      );
+    }
 
     if (user.failedLoginAttempts > 0 || user.lockedUntil) {
       await this.prisma.user.update({
@@ -128,11 +135,7 @@ export class AuthService {
       ).trim();
       const resetLink = `${webOrigin}/reset-password?token=${rawToken}`;
 
-      void dispatchNotification('password-reset-requested', {
-        email: user.email,
-        tenantId: user.tenantId ?? undefined,
-        resetLink,
-      });
+      void dispatchEmail(user.email, 'password-reset', { resetLink }, user.tenantId ?? undefined);
     }
 
     return { message: 'Password reset link sent successfully.' };
@@ -200,6 +203,32 @@ export class AuthService {
     return { success: true };
   }
 
+  /** Issue (or re-issue) activation link and send verify-email template. */
+  async sendEmailVerification(userId: string): Promise<{ sent: boolean }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.emailVerified) {
+      return { sent: false };
+    }
+    const rawToken = generateRawToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerificationToken: hashToken(rawToken) },
+    });
+    const verifyUrl = this.buildVerifyUrl(rawToken);
+    return dispatchEmail(user.email, 'verify-email', { verifyUrl }, user.tenantId ?? undefined);
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (user && !user.emailVerified) {
+      await this.sendEmailVerification(user.id);
+    }
+    return {
+      message:
+        'If an account exists and is not yet verified, we sent a new activation link to that email address.',
+    };
+  }
+
   async verifyEmail(token: string) {
     if (!token?.trim()) {
       throw new BadRequestException('Token required');
@@ -237,11 +266,21 @@ export class AuthService {
         displayName: dto.displayName?.trim() || null,
         roles: [EwatuRole.TENANT_ADMIN],
         tenantId: dto.tenantId,
-        emailVerified: true,
+        emailVerified: false,
       },
     });
 
+    void this.sendEmailVerification(user.id);
+
     return { userId: user.id };
+  }
+
+  private buildVerifyUrl(rawToken: string): string {
+    const webOrigin = (
+      (this.config.get<string>('CORS_ORIGIN') ?? 'http://localhost:5173').split(',')[0] ??
+      'http://localhost:5173'
+    ).trim();
+    return `${webOrigin}/verify-email?token=${rawToken}`;
   }
 
   async findUserIdByEmail(email: string): Promise<{ id: string; email: string } | null> {
@@ -251,6 +290,21 @@ export class AuthService {
       select: { id: true, email: true },
     });
     return user ?? null;
+  }
+
+  async findUsersByTenantRoles(
+    tenantId: string,
+    roles: string[],
+  ): Promise<Array<{ id: string; email: string }>> {
+    if (!tenantId || roles.length === 0) return [];
+    const users = await this.prisma.user.findMany({
+      where: { tenantId, active: true },
+      select: { id: true, email: true, roles: true },
+    });
+    const wanted = new Set(roles);
+    return users
+      .filter((u) => u.roles.some((r) => wanted.has(r)))
+      .map((u) => ({ id: u.id, email: u.email }));
   }
 
   private async notifyPlatformEmailVerified(tenantId: string) {

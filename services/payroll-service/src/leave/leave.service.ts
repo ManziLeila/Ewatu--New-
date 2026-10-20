@@ -177,6 +177,46 @@ export class LeaveService implements OnModuleInit {
     });
   }
 
+  /** Applicant (or HR senior applying on behalf) may edit/cancel only while status is PENDING. */
+  private async assertCanModifyOwnPendingLeave(
+    tenantId: string,
+    request: { employeeId: string; status: string },
+    actor: { email?: string; roles: string[] },
+  ): Promise<void> {
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException('Only pending leave requests can be edited or cancelled');
+    }
+    if (SENIOR_ROLES.some((r) => actor.roles.includes(r))) return;
+
+    const me = await this.findEmployeeForUser(tenantId, actor.email);
+    if (!me || me.id !== request.employeeId) {
+      throw new ForbiddenException('You can only change your own leave requests');
+    }
+  }
+
+  private async assertNoLeaveOverlap(
+    employeeId: string,
+    startDate: Date,
+    endDate: Date,
+    excludeRequestId?: string,
+  ): Promise<void> {
+    const overlapping = await this.prisma.leaveRequest.findMany({
+      where: {
+        employeeId,
+        status: { in: ['PENDING', 'APPROVED'] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+        ...(excludeRequestId ? { NOT: { id: excludeRequestId } } : {}),
+      },
+    });
+    const conflict = overlapping[0];
+    if (conflict) {
+      throw new BadRequestException(
+        `This overlaps an existing leave request from ${conflict.startDate.toDateString()} to ${conflict.endDate.toDateString()}.`,
+      );
+    }
+  }
+
   private async assertCanActOnRequest(
     tenantId: string,
     request: { employeeId: string; employee: { managerId: string | null } },
@@ -224,21 +264,7 @@ export class LeaveService implements OnModuleInit {
     const leaveType = await this.prisma.leaveType.findUnique({ where: { id: body.leaveTypeId } });
     if (!leaveType) throw new NotFoundException('Leave type not found');
 
-    // Overlap check — an employee cannot have two pending/approved requests covering the same dates
-    const overlapping = await this.prisma.leaveRequest.findMany({
-      where: {
-        employeeId: body.employeeId,
-        status: { in: ['PENDING', 'APPROVED'] },
-        startDate: { lte: endDate },
-        endDate: { gte: startDate },
-      },
-    });
-    const conflict = overlapping[0];
-    if (conflict) {
-      throw new BadRequestException(
-        `This overlaps an existing leave request from ${conflict.startDate.toDateString()} to ${conflict.endDate.toDateString()}.`,
-      );
-    }
+    await this.assertNoLeaveOverlap(body.employeeId, startDate, endDate);
 
     // Check balance if not Unpaid Leave
     if (leaveType.code !== 'UNPAID') {
@@ -287,6 +313,144 @@ export class LeaveService implements OnModuleInit {
     });
 
     return request;
+  }
+
+  async getLeaveRequestById(
+    tenantId: string,
+    id: string,
+    caller: { email?: string; roles: string[]; permissions?: string[] },
+  ) {
+    const request = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+      include: {
+        leaveType: true,
+        employee: true,
+        delegateTo: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+    if (!request || request.tenantId !== tenantId) {
+      throw new NotFoundException('Leave request not found');
+    }
+    await this.assertCanViewEmployeeLeaveData(tenantId, request.employeeId, caller);
+    const attachmentUrl = await this.buildAttachmentUrl(request.attachmentS3Key);
+    return maskEmployeeCompensation({ ...request, attachmentUrl }, caller);
+  }
+
+  async updateLeaveRequest(
+    tenantId: string,
+    id: string,
+    body: {
+      leaveTypeId: string;
+      startDate: string;
+      endDate: string;
+      days?: number;
+      reason?: string;
+      delegateToEmployeeId?: string;
+      emergencyContactPhone?: string;
+    },
+    actor: { userId: string; email?: string; roles: string[]; ip?: string },
+  ) {
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+      include: { leaveType: true, employee: true },
+    });
+    if (!existing || existing.tenantId !== tenantId) {
+      throw new NotFoundException('Leave request not found');
+    }
+    await this.assertCanModifyOwnPendingLeave(tenantId, existing, actor);
+
+    const startDate = new Date(body.startDate);
+    const endDate = new Date(body.endDate);
+    if (endDate < startDate) {
+      throw new BadRequestException('End date cannot be before start date');
+    }
+
+    const calculatedDays = body.days ?? this.calculateWorkingDays(startDate, endDate);
+    const year = startDate.getFullYear();
+
+    const leaveType = await this.prisma.leaveType.findUnique({ where: { id: body.leaveTypeId } });
+    if (!leaveType) throw new NotFoundException('Leave type not found');
+
+    await this.assertNoLeaveOverlap(existing.employeeId, startDate, endDate, id);
+
+    if (leaveType.code !== 'UNPAID') {
+      const balance = await this.getOrInitializeBalance(tenantId, existing.employeeId, body.leaveTypeId, year);
+      const remaining = Number(balance.allocatedDays) - Number(balance.usedDays);
+      if (calculatedDays > remaining) {
+        throw new BadRequestException(
+          `Insufficient leave balance. Remaining: ${remaining} days, requested: ${calculatedDays} days.`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        leaveTypeId: body.leaveTypeId,
+        startDate,
+        endDate,
+        numberOfDays: calculatedDays,
+        reason: body.reason,
+        delegateToEmployeeId: body.delegateToEmployeeId || null,
+        emergencyContactPhone: body.emergencyContactPhone || null,
+        rejectionReason: null,
+      },
+      include: { leaveType: true, employee: true },
+    });
+
+    void this.auditLog.record({
+      tenantId,
+      userId: actor.userId,
+      action: 'UPDATED',
+      resource: 'leave_request',
+      resourceId: id,
+      payload: { leaveType: leaveType.code, startDate: body.startDate, endDate: body.endDate },
+      ipAddress: actor.ip,
+    });
+
+    return updated;
+  }
+
+  async cancelLeaveRequest(
+    tenantId: string,
+    id: string,
+    reason: string,
+    actor: { userId: string; email?: string; roles: string[]; ip?: string },
+  ) {
+    const trimmed = reason?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('A cancellation reason is required');
+    }
+
+    const existing = await this.prisma.leaveRequest.findUnique({
+      where: { id },
+      include: { leaveType: true, employee: true },
+    });
+    if (!existing || existing.tenantId !== tenantId) {
+      throw new NotFoundException('Leave request not found');
+    }
+    await this.assertCanModifyOwnPendingLeave(tenantId, existing, actor);
+
+    const updated = await this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        rejectionReason: trimmed,
+      },
+      include: { leaveType: true, employee: true },
+    });
+
+    void this.auditLog.record({
+      tenantId,
+      userId: actor.userId,
+      action: 'CANCELLED',
+      resource: 'leave_request',
+      resourceId: id,
+      payload: { reason: trimmed },
+      ipAddress: actor.ip,
+    });
+
+    return updated;
   }
 
   /** `filters.employeeId` set: caller must be that employee, a senior officer, or lead a team

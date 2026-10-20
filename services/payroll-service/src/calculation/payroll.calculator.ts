@@ -8,6 +8,8 @@ export interface PayrollInput {
   transportAllowance: number;
   otherAllowances: number;
   otherDeductions: number;
+  /** When false, RSSB medical (RAMA) is excluded for this employee. */
+  includeRama?: boolean;
 }
 
 export interface EmployeeDeductions {
@@ -22,6 +24,7 @@ export interface EmployeeDeductions {
 export interface EmployerCosts {
   rssbEmployer: number;
   maternityLevy: number;
+  occupationalHazard: number;
 }
 
 export interface PayrollResult {
@@ -36,6 +39,7 @@ export interface PayrollResult {
   rssbMedical: number;
   cbhi: number;
   maternityLevy: number;
+  occupationalHazard: number;
   otherDeductions: number;
   totalDeductions: number;
   netPay: number;
@@ -50,20 +54,24 @@ export interface PayrollConfig {
   rssbMedical: number;
   cbhiRate: number;
   maternityLevy: number;
+  occupationalHazardRate: number;
 }
 
+/** Statutory amounts depend on gross pay and config only — not RSSB membership numbers. */
 export function calculatePayroll(input: PayrollInput, config: PayrollConfig): PayrollResult {
   const grossPay =
     input.basicSalary + input.housingAllowance + input.transportAllowance + input.otherAllowances;
   const paye = config.payeEnabled ? calculatePAYE(grossPay) : 0;
+  const medicalRate = input.includeRama === false ? 0 : config.rssbMedical;
   const rssb = calculateRSSB(
     grossPay,
     config.rssbPensionEmployee,
     config.rssbPensionEmployer,
-    config.rssbMedical,
+    medicalRate,
   );
   const cbhi = calculateCBHI(grossPay, config.cbhiRate);
   const maternityLevy = grossPay * config.maternityLevy;
+  const occupationalHazard = grossPay * config.occupationalHazardRate;
   const totalDeductions =
     paye + rssb.rssbEmployee + rssb.rssbMedical + cbhi + input.otherDeductions;
   const netPay = grossPay - totalDeductions;
@@ -80,6 +88,7 @@ export function calculatePayroll(input: PayrollInput, config: PayrollConfig): Pa
   const employerCosts: EmployerCosts = {
     rssbEmployer: rssb.rssbEmployer,
     maternityLevy,
+    occupationalHazard,
   };
 
   return {
@@ -94,6 +103,7 @@ export function calculatePayroll(input: PayrollInput, config: PayrollConfig): Pa
     rssbMedical: rssb.rssbMedical,
     cbhi,
     maternityLevy,
+    occupationalHazard,
     otherDeductions: input.otherDeductions,
     totalDeductions,
     netPay,

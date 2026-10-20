@@ -17,6 +17,8 @@ export type BulkImportRow = {
   department?: string;
   clientId?: string;
   basicSalary?: number;
+  rssbNumber?: string;
+  ramaEnabled?: boolean;
 };
 
 export type BulkImportResult = {
@@ -97,6 +99,8 @@ export class EmployeesService {
         housingAllowance: dto.housingAllowance ?? 0,
         transportAllowance: dto.transportAllowance ?? 0,
         otherAllowances: dto.otherAllowances ?? 0,
+        ramaEnabled: dto.ramaEnabled ?? true,
+        rssbNumber: dto.rssbNumber?.trim() || undefined,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : undefined,
@@ -360,6 +364,8 @@ export class EmployeesService {
       where: { id },
       data: {
         ...rest,
+        ...(dto.rssbNumber !== undefined ? { rssbNumber: dto.rssbNumber.trim() || null } : {}),
+        ...(dto.ramaEnabled !== undefined ? { ramaEnabled: dto.ramaEnabled } : {}),
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : undefined,
@@ -440,6 +446,8 @@ export class EmployeesService {
           basicSalary: row.basicSalary != null && !Number.isNaN(Number(row.basicSalary))
             ? Number(row.basicSalary)
             : undefined,
+          rssbNumber: row.rssbNumber?.trim() || undefined,
+          ramaEnabled: row.ramaEnabled ?? true,
         });
 
         created++;
