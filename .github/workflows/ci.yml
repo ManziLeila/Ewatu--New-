@@ -1,0 +1,70 @@
+# CI on development, UAT, and main — mirrors GitLab build/lint intent.
+name: CI
+
+on:
+  push:
+    branches: [development, UAT, main]
+  pull_request:
+    branches: [development, UAT, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run check:architecture
+
+  prisma-generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate:all
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate:all
+      - run: npm run build:common-auth
+      - run: npm run build:web
+
+  services-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - identity-service
+          - platform-service
+          - recruitment-service
+          - notification-service
+          - payroll-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate:all
+      - run: npm run build:common-auth
+      - run: npm run build --prefix services/${{ matrix.service }}

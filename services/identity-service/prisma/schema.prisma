@@ -3,7 +3,7 @@ generator client {
   // Explicit local output so this service's Prisma client is never shadowed by (or shadows)
   // another service's generated client at the npm workspace root -- see the shared
   // node_modules/@prisma/client hoisting issue this fixes.
-  output   = "../node_modules/@prisma/client"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {

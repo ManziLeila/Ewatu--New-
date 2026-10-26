@@ -57,7 +57,9 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "concurrently": "^9.2.5"
+    "@prisma/client": "5.22.0",
+    "concurrently": "^9.2.5",
+    "prisma": "5.22.0"
   },
   "dependencies": {
     "class-transformer": "^0.5.1",

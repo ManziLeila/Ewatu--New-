@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generate Prisma clients for every service (uses root prisma CLI — no npx).
- * Each service uses output = "../node_modules/@prisma/client" — never services/node_modules.
+ * Each service uses output = "../node_modules/.prisma/client" (imports stay `@prisma/client`).
  */
 import { existsSync, readFileSync, readdirSync, cpSync, rmSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -9,10 +9,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const prismaCli = join(root, 'node_modules', 'prisma', 'build', 'index.js');
+const rootPrismaPkg = join(root, 'node_modules', 'prisma');
+const rootPrismaCli = join(rootPrismaPkg, 'build', 'index.js');
 const vanillaStub = join(root, 'node_modules', '@prisma', 'client');
 
-if (!existsSync(prismaCli)) {
+if (!existsSync(rootPrismaCli)) {
   console.error('Missing prisma CLI. Run: npm install (from repo root)');
   process.exit(1);
 }
@@ -48,10 +49,20 @@ function firstModelName(schemaPath) {
 }
 
 function clientHasModel(serviceDir, modelName) {
-  const dts = join(serviceDir, 'node_modules', '@prisma', 'client', 'index.d.ts');
+  const dts =
+    join(serviceDir, 'node_modules', '.prisma', 'client', 'index.d.ts');
   if (!existsSync(dts)) return false;
   const body = readFileSync(dts, 'utf8');
   return body.includes(`export type ${modelName} `) || body.includes(`$${modelName}Payload`);
+}
+
+/** Prisma generate resolves prisma + @prisma/client from the schema folder; both must live under the same service node_modules (not root-hoisted CLI + local client). */
+function ensureLocalPrismaCli(serviceDir) {
+  const target = join(serviceDir, 'node_modules', 'prisma');
+  rmSync(target, { recursive: true, force: true });
+  mkdirSync(join(serviceDir, 'node_modules'), { recursive: true });
+  cpSync(rootPrismaPkg, target, { recursive: true });
+  return join(target, 'build', 'index.js');
 }
 
 function ensureVanillaStub(serviceDir) {
@@ -80,8 +91,10 @@ for (const name of serviceNames) {
   const expectModel = firstModelName(schema);
   process.stdout.write(`\n→ ${name}: prisma generate … `);
 
+  let servicePrismaCli;
   try {
     ensureVanillaStub(serviceDir);
+    servicePrismaCli = ensureLocalPrismaCli(serviceDir);
   } catch (e) {
     console.log('failed (stub)');
     console.error(e instanceof Error ? e.message : e);
@@ -89,9 +102,20 @@ for (const name of serviceNames) {
     continue;
   }
 
-  const r = spawnSync(process.execPath, [prismaCli, 'generate'], {
+  const postinstall = join(serviceDir, 'node_modules', '@prisma', 'client', 'scripts', 'postinstall.js');
+  if (existsSync(postinstall)) {
+    spawnSync(process.execPath, [postinstall], {
+      cwd: serviceDir,
+      env: process.env,
+      stdio: 'pipe',
+      encoding: 'utf8',
+      timeout: 120_000,
+    });
+  }
+
+  const r = spawnSync(process.execPath, [servicePrismaCli, 'generate'], {
     cwd: serviceDir,
-    env: process.env,
+    env: { ...process.env, PRISMA_GENERATE_SKIP_AUTOINSTALL: '1' },
     stdio: 'pipe',
     encoding: 'utf8',
     timeout: 120_000,
