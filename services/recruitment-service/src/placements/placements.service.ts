@@ -87,6 +87,9 @@ export class PlacementsService {
       void dispatchNotification('placement-created', {
         placementId: placement.id,
         candidateId: placement.candidateId,
+        candidateEmail: placement.offer.application.candidate.email,
+        candidateName: `${placement.offer.application.candidate.firstName} ${placement.offer.application.candidate.lastName}`,
+        jobTitle: placement.offer.application.job.title,
         clientName: placement.clientName,
         roleName: placement.roleName,
         salary: placement.salary,

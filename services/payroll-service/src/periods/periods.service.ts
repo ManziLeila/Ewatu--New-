@@ -369,9 +369,10 @@ export class PeriodsService {
       resourceId: periodId,
       payload: { periodMonth: finalized.periodMonth, periodYear: finalized.periodYear, recordCount: period.records.length, totalAmount },
     });
-    void dispatchNotification('payroll-finalized', {
+    void notifyTenantRoles(tenantId, ['FINANCE_OFFICER', 'TENANT_ADMIN', 'HR_MANAGER'], 'payroll-finalized', {
       periodId,
-      tenantId,
+      periodYear: finalized.periodYear,
+      periodMonth: finalized.periodMonth,
       recordCount: period.records.length,
     });
     return finalized;

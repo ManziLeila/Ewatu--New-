@@ -24,6 +24,7 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { TrainingModule } from './training/training.module';
 import { DocumentsModule } from './documents/documents.module';
 import { PayrollCommonModule } from './common/payroll-common.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PayrollCommonModule } from './common/payroll-common.module';
     CommonAuthModule,
     PayrollCommonModule,
     PrismaModule,
+    InternalModule,
     HealthModule,
     PayrollConfigModule,
     EmployeesModule,

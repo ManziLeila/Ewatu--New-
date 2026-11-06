@@ -112,6 +112,9 @@ export class OffersService {
     void dispatchNotification('offer-sent', {
       offerId: updated.id,
       candidateId: updated.candidateId,
+      candidateEmail: updated.application.candidate.email,
+      candidateName: `${updated.application.candidate.firstName} ${updated.application.candidate.lastName}`,
+      jobTitle: updated.application.job.title,
       jobId: updated.jobId,
       salary: updated.salary,
       currency: updated.currency,

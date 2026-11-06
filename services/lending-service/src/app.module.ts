@@ -4,12 +4,14 @@ import { CommonAuthModule, RequestLoggerMiddleware } from '@ewatu/common-auth';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { LoansModule } from './loans/loans.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonAuthModule,
     PrismaModule,
+    InternalModule,
     HealthModule,
     LoansModule,
   ],

@@ -543,13 +543,22 @@ html.dark .dash-tab--active {
 
 .stat-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.6rem 0.8rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 0.82rem;
+}
+
+.stat-item__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .stat-item__name {

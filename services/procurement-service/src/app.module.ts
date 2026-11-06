@@ -7,12 +7,14 @@ import { RequisitionsModule } from './requisitions/requisitions.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReceiptsModule } from './receipts/receipts.module';
 import { HealthModule } from './health/health.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonAuthModule,
     PrismaModule,
+    InternalModule,
     VendorsModule,
     RequisitionsModule,
     OrdersModule,

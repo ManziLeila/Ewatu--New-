@@ -12,6 +12,7 @@ import { PlacementsModule } from './placements/placements.module';
 import { PublicModule } from './public/public.module';
 import { DocumentsModule } from './documents/documents.module';
 import { RecruitmentCommonModule } from './common/common.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RecruitmentCommonModule } from './common/common.module';
     CommonAuthModule,
     RecruitmentCommonModule,
     PrismaModule,
+    InternalModule,
     HealthModule,
     JobsModule,
     CandidatesModule,

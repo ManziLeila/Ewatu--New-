@@ -15,7 +15,7 @@ body {
   min-height: 100vh;
 }
 
-a {
+a:not(.pnav__link):not(.pnav__btn):not(.pnav__dropdown-item):not(.adm-sidebar__home):not(.adm-nav__link) {
   color: var(--color-primary-mid);
   text-decoration: none;
   font-weight: 500;
@@ -180,9 +180,13 @@ code {
   text-decoration: none;
 }
 
-.pnav--dark .pnav__link { color: rgba(248,250,252,0.8); }
+.pnav--dark .pnav__link,
+.pnav--dark button.pnav__link {
+  color: rgba(248, 250, 252, 0.92);
+}
 .pnav--dark .pnav__link:hover,
-.pnav--dark .pnav__item--open .pnav__link {
+.pnav--dark .pnav__item--open .pnav__link,
+.pnav--dark button.pnav__link:hover {
   background: rgba(255,255,255,0.08);
   color: #fff;
 }
@@ -859,6 +863,38 @@ code {
   opacity: 0.92;
 }
 
+.auth-panel--action .auth-error--warning {
+  background: color-mix(in srgb, var(--accent, #f5911e) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--accent, #f5911e) 38%, var(--line));
+  color: var(--ink);
+}
+
+.auth-panel--action .auth-error--warning .auth-error__icon {
+  color: var(--accent, #f5911e);
+}
+
+.auth-panel--action .auth-error--error {
+  background: color-mix(in srgb, #ef4444 12%, var(--card));
+  border-color: color-mix(in srgb, #ef4444 35%, var(--line));
+  color: var(--ink);
+}
+
+.auth-panel--action .auth-error--error .auth-error__icon {
+  color: #f87171;
+}
+
+.auth-verify-recovery {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.auth-verify-recovery__lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+}
+
 .alert--info {
   background: #ecfeff;
   border: 1px solid #a5f3fc;
@@ -900,6 +936,17 @@ code {
   flex-direction: column;
   gap: 0.35rem;
   align-items: flex-start;
+}
+
+.admin__actions--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin__actions--stack {
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .admin__reject-inline {
@@ -2964,6 +3011,13 @@ table tr:hover td,
 /* Glassmorphic Dark Modals */
 .modal-overlay,
 .drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
   background: rgba(3, 7, 18, 0.75);
   backdrop-filter: blur(10px);
   animation: fadeIn 0.2s ease-out;
@@ -2971,12 +3025,57 @@ table tr:hover td,
 
 .modal-card,
 .drawer-card {
+  width: min(100%, 32rem);
+  max-height: min(90vh, 640px);
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
   background: var(--card);
   border-radius: 20px;
   border: 1px solid var(--line-strong);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   color: var(--ink);
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.adm-modal__lead {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.adm-modal__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.adm-modal__form label {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.adm-modal__field {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.88rem;
+}
+
+.adm-modal__field textarea {
+  margin-top: 0.35rem;
+  width: 100%;
+  resize: vertical;
 }
 
 @keyframes fadeIn {

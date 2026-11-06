@@ -320,8 +320,10 @@ export function AdminLayout() {
         {/* Brand */}
         <div className="adm-sidebar__brand">
           <Link to="/" className="adm-sidebar__home">
-            <span className="adm-sidebar__logo-mark">E</span>
-            <span className="adm-sidebar__logo-text">-Watu</span>
+            <span className="adm-sidebar__logo-mark" aria-hidden>
+              E
+            </span>
+            <span className="adm-sidebar__logo-text">Watu</span>
           </Link>
           <div className="adm-sidebar__subtitle">
             {isSuper ? 'Platform control' : companyAdminOnly ? 'Company admin' : 'HR Platform'}

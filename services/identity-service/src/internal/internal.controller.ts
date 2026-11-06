@@ -1,14 +1,18 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from '../auth/auth.service';
 import { ProvisionTenantOwnerDto } from './dtos/provision-tenant-owner.dto';
 import { InternalApiGuard } from './internal-api.guard';
+import { TenantPurgeService } from './tenant-purge.service';
 
 @SkipThrottle()
 @Controller('internal')
 @UseGuards(InternalApiGuard)
 export class InternalController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly tenantPurge: TenantPurgeService,
+  ) {}
 
   @Post('provision-tenant-owner')
   provisionTenantOwner(@Body() body: ProvisionTenantOwnerDto) {
@@ -21,6 +25,16 @@ export class InternalController {
   @Get('users/by-email')
   findUserIdByEmail(@Query('email') email: string) {
     return this.auth.findUserIdByEmail(email);
+  }
+
+  @Get('users/by-id')
+  findUserById(@Query('userId') userId: string) {
+    return this.auth.findUserById(userId);
+  }
+
+  @Delete('tenants/:tenantId')
+  purgeTenant(@Param('tenantId') tenantId: string) {
+    return this.tenantPurge.purgeTenant(tenantId);
   }
 
   @Get('users/by-tenant-roles')

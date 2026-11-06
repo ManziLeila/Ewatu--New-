@@ -20,6 +20,8 @@ feature work  →  push to development  →  CI runs
 
 Use **pull requests** for `development` → `UAT` and `UAT` → `main` so CI runs before merge.
 
+**GitHub Actions blocked (billing)?** Deploy from your own server instead — see [deploy-without-github-actions.md](./deploy-without-github-actions.md) and [COOLIFY.md](../COOLIFY.md).
+
 ## One-time: new GitHub repository
 
 1. On GitHub: **New repository** (empty — no README, no `.gitignore`).

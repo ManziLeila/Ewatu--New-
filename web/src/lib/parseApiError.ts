@@ -12,7 +12,7 @@ const FRIENDLY_BY_CODE: Record<
   EMAIL_NOT_VERIFIED: {
     title: 'Activate your email',
     message:
-      'This account is not activated yet. Open the link we sent to your inbox, or resend a new activation email below.',
+      'This account is not activated yet. Check your email inbox and spam folder for the activation link, or resend a new email below.',
     variant: 'warning',
   },
   RATE_LIMIT_EXCEEDED: {
@@ -73,6 +73,15 @@ function fromNestMessage(message: string): ParsedApiError | null {
     return {
       title: 'Email not verified',
       message: message,
+      variant: 'warning',
+    };
+  }
+  if (lower.includes('invalid or expired verification')) {
+    return {
+      title: 'Link expired or already used',
+      message:
+        'This link is no longer valid — it may have expired, already been used, or been replaced by a newer email.',
+      code: 'VERIFY_LINK_INVALID',
       variant: 'warning',
     };
   }

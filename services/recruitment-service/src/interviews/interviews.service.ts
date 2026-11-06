@@ -66,6 +66,9 @@ export class InterviewsService {
     });
     void dispatchNotification('interview-scheduled', {
       applicationId: interview.applicationId,
+      candidateEmail: interview.application.candidate.email,
+      candidateName: `${interview.application.candidate.firstName} ${interview.application.candidate.lastName}`,
+      jobTitle: interview.application.job.title,
       scheduledAt: interview.scheduledAt,
       type: interview.type,
       locationOrLink: interview.locationOrLink,

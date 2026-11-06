@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { verifyEmailRequest } from '../api';
+import { toast } from 'sonner';
+import { resendVerificationRequest, verifyEmailRequest } from '../api';
+import { AuthErrorAlert } from '../components/AuthErrorAlert';
 import { AuthLayout } from '../components/AuthLayout';
+import { parseApiError, type ParsedApiError } from '../lib/parseApiError';
 
 export function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -9,35 +12,89 @@ export function VerifyEmailPage() {
   const token = params.get('token') ?? '';
   const [status, setStatus] = useState<'idle' | 'ok' | 'err'>('idle');
   const [msg, setMsg] = useState('');
+  const [err, setErr] = useState<ParsedApiError | null>(null);
+  const [email, setEmail] = useState('');
+  const [resendBusy, setResendBusy] = useState(false);
+  const verifyLock = useRef(false);
+
+  const canResend =
+    err?.code === 'VERIFY_LINK_INVALID' ||
+    err?.title === 'Invalid link' ||
+    err?.code === 'EMAIL_NOT_VERIFIED';
 
   useEffect(() => {
     if (!token) {
       setStatus('err');
-      setMsg('Missing token in URL.');
+      setErr({
+        title: 'Invalid link',
+        message:
+          'Open the full link from your activation email. If you lost it, enter your admin email below and we will send a new one.',
+        code: 'VERIFY_LINK_INVALID',
+        variant: 'warning',
+      });
       return;
     }
+    const storageKey = `ewatu-verify:${token}`;
+    const prior = sessionStorage.getItem(storageKey);
+    if (prior === 'ok') {
+      setStatus('ok');
+      setMsg('Your email is verified. You can sign in now.');
+      return;
+    }
+    if (prior === 'pending' || verifyLock.current) {
+      return;
+    }
+    verifyLock.current = true;
+    sessionStorage.setItem(storageKey, 'pending');
+
     let cancelled = false;
     (async () => {
       try {
         await verifyEmailRequest(token);
+        sessionStorage.setItem(storageKey, 'ok');
         if (!cancelled) {
           setStatus('ok');
           setMsg('Your email is verified. You can sign in now.');
+          toast.success('Email verified — you can sign in now.');
           window.setTimeout(() => {
             navigate('/login?verified=1', { replace: true });
           }, 2500);
         }
       } catch (e) {
+        sessionStorage.removeItem(storageKey);
+        verifyLock.current = false;
         if (!cancelled) {
           setStatus('err');
-          setMsg(e instanceof Error ? e.message : String(e));
+          setErr(parseApiError(e, 'auth'));
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, navigate]);
+
+  const onResend = async (ev: FormEvent) => {
+    ev.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setResendBusy(true);
+    try {
+      const r = await resendVerificationRequest(trimmed);
+      if (r.alreadyVerified) {
+        toast.info(r.message);
+      } else if (r.sent === false) {
+        toast.error(r.message);
+      } else {
+        toast.success(r.message);
+      }
+    } catch (e) {
+      const parsed = parseApiError(e, 'auth');
+      toast.error(parsed.message);
+    } finally {
+      setResendBusy(false);
+    }
+  };
 
   return (
     <AuthLayout
@@ -87,12 +144,32 @@ export function VerifyEmailPage() {
           </p>
         </div>
       )}
-      {status === 'err' && (
+      {status === 'err' && err && (
         <>
           <h2 className="auth-heading auth-heading--compact">Couldn’t verify</h2>
-          <div className="alert alert--err" role="alert">
-            {msg}
-          </div>
+          <AuthErrorAlert error={err} />
+          {canResend && (
+            <div className="auth-verify-recovery">
+              <p className="auth-verify-recovery__lead">Send a fresh activation link to your admin email:</p>
+              <form className="auth-form" onSubmit={onResend}>
+                <label className="auth-label">
+                  Email address
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    className="auth-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    required
+                  />
+                </label>
+                <button type="submit" className="btn btn--primary btn--block" disabled={resendBusy || !email.trim()}>
+                  {resendBusy ? 'Sending…' : 'Resend activation email'}
+                </button>
+              </form>
+            </div>
+          )}
           <p className="auth-alt">
             <Link to="/register-company">Apply for workspace</Link>
             <span className="auth-alt__sep">·</span>

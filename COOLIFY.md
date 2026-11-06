@@ -18,7 +18,7 @@ Only the **gateway** service is public. Everything else stays on the internal Do
 - A Coolify server (v4+) with Docker
 - Git access to this repository (GitLab/GitHub)
 - A domain pointed at your Coolify server (e.g. `erp.yourcompany.com`)
-- SMTP credentials (optional, for real email)
+- Real email: SMTP or [Resend](https://resend.com) API key (see **Real email** below)
 
 ## 1. Generate secrets (on your laptop)
 
@@ -29,6 +29,8 @@ cd hc-erp
 
 Copy the printed `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`, and generate a long random `INTERNAL_API_KEY` (e.g. `openssl rand -hex 32`).
 
+**New to deploying?** Follow [docs/deploy-step-by-step.md](docs/deploy-step-by-step.md) end-to-end (server + Coolify + GitHub without Actions).
+
 ## 2. Create the Coolify resource
 
 1. **+ New** → **Docker Compose** → connect your Git repository.
@@ -38,7 +40,7 @@ Copy the printed `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`, and generate a long random
 
 ## 3. Environment variables
 
-Open **Environment Variables** and add everything from [`deploy/coolify/env.example`](../deploy/coolify/env.example).
+Open **Environment Variables** and add everything from [`coolify/env.example`](coolify/env.example).
 
 | Variable | Example | Notes |
 |----------|---------|--------|
@@ -90,6 +92,32 @@ Production images do not include dev seed tooling. Typical options:
 
 Rotate `INTERNAL_API_KEY` and JWT keys before any production launch if they were ever committed or shared.
 
+## Real email (verification, password reset, tenant approval)
+
+All outbound mail goes through **notification-service** only. Other services call its internal `dispatch` API.
+
+1. **Pick a provider**
+   - **SMTP** — Gmail (App Password), Microsoft 365, Brevo, SendGrid, your host’s relay.
+   - **Resend** — set `RESEND_API_KEY` on notification-service; verify your domain and set `RESEND_FROM_ADDRESS`. Without a verified domain, Resend sandbox only delivers to the email on your Resend account.
+
+2. **Set variables on notification-service** (Coolify env or `services/notification-service/.env`):
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | SMTP sending (or leave `SMTP_HOST` empty if using Resend) |
+   | `RESEND_API_KEY`, `RESEND_FROM_ADDRESS` | Resend instead of SMTP |
+   | `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS` / `EMAIL_FROM` | From header (must be allowed by your provider) |
+
+3. **Link URLs in emails** must point at your live site:
+   - **identity-service:** `CORS_ORIGIN=https://erp.yourdomain.com` (first value is used for verify + reset links)
+   - **platform-service:** `WEB_APP_ORIGIN=https://erp.yourdomain.com` (approval / login links)
+
+4. **Ensure dispatch works:** on identity and platform, `NOTIFICATION_SERVICE_URL` must reach notification-service (e.g. `http://notification-service:3015` on the Docker network) and `INTERNAL_API_KEY` must match everywhere.
+
+5. **Redeploy** notification-service and watch logs for `[EmailService] SMTP configured` or `Resend configured`. Trigger a **Resend verification** or **Forgot password** to test.
+
+Local dev: keep Mailpit (`SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025` after `npm run db:up`) or paste the same production SMTP/Resend vars into `services/notification-service/.env` to test real delivery.
+
 ## 7. Verify
 
 - `https://erp.example.com` — login page loads
@@ -131,7 +159,7 @@ Push to Git → Coolify **Redeploy**. Migrations run automatically on service re
 | 502 on domain | Gateway not healthy; `docker logs` on gateway and upstream services |
 | Login fails / invalid token | `JWT_ISSUER` must match `APP_URL/auth`; keys identical on all services |
 | CORS errors | `APP_URL` must exactly match browser URL (scheme + host) |
-| Emails not sent | Set `SMTP_*`; empty `SMTP_HOST` logs only |
+| Emails not sent | notification-service: set `SMTP_*` or `RESEND_API_KEY`; check `NOTIFICATION_SERVICE_URL` + `INTERNAL_API_KEY` on identity/platform; logs show `console` if unset |
 | Uploads fail | MinIO up; `S3_BUCKET`; check document-service logs |
 | DB connection refused | Postgres healthcheck; `POSTGRES_PASSWORD` in all `DATABASE_URL`s |
 

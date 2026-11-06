@@ -72,7 +72,10 @@ export function LoginPage() {
       {err && <AuthErrorAlert error={err} />}
       {needsEmailActivation && (
         <div className="alert alert--ok" style={{ marginBottom: '1rem' }}>
-          <p style={{ margin: '0 0 0.5rem' }}>{resendMsg ?? 'Did not get the email?'}</p>
+          <p style={{ margin: '0 0 0.5rem' }}>
+            {resendMsg ??
+              'We send activation links to your real email address. Check inbox and spam, then open the link before signing in again.'}
+          </p>
           <button
             type="button"
             className="btn btn--ghost btn--sm"

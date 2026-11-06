@@ -10,6 +10,7 @@ import { COMPENSATION_FIELDS, maskFields } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { dispatchNotification } from '../common/notification.dispatch';
+import { notifyTenantRoles } from '../common/payroll-notify';
 
 /** Strips salary/allowance fields from an embedded Employee unless the caller holds
  *  employee-compensation:read — leave approval never needs to expose pay figures. */
@@ -304,11 +305,11 @@ export class LeaveService implements OnModuleInit {
       payload: { leaveType: leaveType.code, startDate: body.startDate, endDate: body.endDate },
       ipAddress: actor.ip,
     });
-    void dispatchNotification('leave-submitted', {
-      tenantId,
+    void notifyTenantRoles(tenantId, ['HR_MANAGER', 'TENANT_ADMIN'], 'leave-submitted', {
       leaveRequestId: request.id,
       employeeId: request.employeeId,
       employeeName: `${request.employee.firstName} ${request.employee.lastName}`,
+      employeeEmail: request.employee.email,
       leaveType: leaveType.name,
     });
 

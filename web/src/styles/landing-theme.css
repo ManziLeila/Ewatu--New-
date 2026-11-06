@@ -331,7 +331,28 @@ html[data-theme='dark'] .landing .erp-preview__glow {
   background: radial-gradient(ellipse at center, rgba(126, 200, 234, 0.22), transparent 70%);
 }
 
-/* Public nav on marketing pages */
+/* Public nav on marketing pages — force readable links (global `a` / theme tokens can override pnav) */
+.landing .pnav--dark .pnav__link,
+.landing .pnav--dark button.pnav__link {
+  color: rgba(248, 250, 252, 0.92) !important;
+}
+
+.landing .pnav--dark .pnav__link:hover,
+.landing .pnav--dark .pnav__item--open .pnav__link,
+.landing .pnav--dark button.pnav__link:hover {
+  color: #fff !important;
+}
+
+.landing .pnav--light .pnav__link,
+.landing .pnav--light button.pnav__link {
+  color: #475569 !important;
+}
+
+.landing .pnav--light .pnav__link:hover,
+.landing .pnav--light .pnav__item--open .pnav__link {
+  color: #0f172a !important;
+}
+
 html.dark .landing .pnav--dark .pnav__brand-sub,
 html[data-theme='dark'] .landing .pnav--dark .pnav__brand-sub {
   color: rgba(248, 250, 252, 0.55);

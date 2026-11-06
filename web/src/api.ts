@@ -168,7 +168,7 @@ export async function resendVerificationRequest(email: string) {
     body: JSON.stringify({ email }),
   });
   if (!r.ok) throw new Error(await r.text());
-  return parseJson<{ message: string }>(r);
+  return parseJson<{ message: string; sent?: boolean; alreadyVerified?: boolean }>(r);
 }
 
 export async function verifyEmailRequest(token: string) {
@@ -290,6 +290,16 @@ export async function archiveTenant(id: string) {
   return parseJson<TenantRow>(r);
 }
 
+/** Hard delete — purges data in all services, then removes the tenant row. Requires matching slug. */
+export async function purgeTenantPermanent(id: string, confirmSlug: string) {
+  const r = await authFetch(`${platformUrl()}/api/v1/tenants/${id}/purge`, {
+    method: 'POST',
+    body: JSON.stringify({ confirmSlug }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<{ id: string; slug: string; purged: true }>(r);
+}
+
 export async function updateTenantSettings(body: {
   name?: string;
   logoUrl?: string;
@@ -403,6 +413,18 @@ export async function createTenant(body: {
 }) {
   const r = await authFetch(`${platformUrl()}/api/v1/tenants`, {
     method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<TenantRow>(r);
+}
+
+export async function updateTenant(
+  id: string,
+  body: { name?: string; plan?: string; country?: string },
+) {
+  const r = await authFetch(`${platformUrl()}/api/v1/tenants/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);

@@ -5,9 +5,7 @@ const SUBJECTS: Record<string, string> = {
   'placement-created': 'Placement created',
 };
 
-// Fields already reflected elsewhere in the email (recipient address, internal ids) or not
-// meaningful to a human reader — left out of the readable field list below.
-const HIDDEN_FIELDS = new Set(['tenantId', 'candidateEmail', 'candidateId', 'jobId', 'applicationId']);
+const HIDDEN_FIELDS = new Set(['tenantId', 'candidateEmail', 'candidateId', 'jobId', 'applicationId', 'email']);
 
 function humanizeKey(key: string): string {
   const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
@@ -23,8 +21,6 @@ function humanizeValue(value: unknown): string {
   return String(value);
 }
 
-/** Renders a notification payload as a clean, human-readable field list instead of a raw JSON
- *  dump — every dispatched type shares this, so no per-type email template is needed. */
 function buildEmailBody(subject: string, payload: Record<string, unknown>): { text: string; html: string } {
   const rows = Object.entries(payload)
     .filter(([key, value]) => !HIDDEN_FIELDS.has(key) && value !== undefined && value !== null && value !== '')
@@ -45,7 +41,30 @@ function buildEmailBody(subject: string, payload: Record<string, unknown>): { te
   return { text, html };
 }
 
-/** Fire-and-forget notification dispatch to notification-service. */
+async function resolveUserIdByEmail(email: string | undefined): Promise<string | undefined> {
+  if (!email) return undefined;
+  const base = process.env.IDENTITY_SERVICE_URL?.replace(/\/$/, '');
+  const key = process.env.INTERNAL_API_KEY;
+  if (!base || !key) return undefined;
+  try {
+    const res = await fetch(`${base}/api/v1/internal/users/by-email?email=${encodeURIComponent(email)}`, {
+      headers: { 'x-internal-key': key },
+    });
+    if (!res.ok) return undefined;
+    const body = (await res.json()) as { id?: string } | null;
+    return body?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+function recipientEmail(payload: Record<string, unknown>): string | undefined {
+  if (typeof payload.candidateEmail === 'string') return payload.candidateEmail.trim().toLowerCase();
+  if (typeof payload.email === 'string') return payload.email.trim().toLowerCase();
+  return undefined;
+}
+
+/** Fire-and-forget notification dispatch — always attempts email when an address is present. */
 export async function dispatchNotification(
   type: string,
   payload: Record<string, unknown>,
@@ -54,10 +73,11 @@ export async function dispatchNotification(
   const key = process.env.INTERNAL_API_KEY;
   if (!base || !key) return;
 
-  const to =
-    typeof payload.candidateEmail === 'string' ? payload.candidateEmail : undefined;
+  const to = recipientEmail(payload);
   const subject = SUBJECTS[type] ?? 'E-Watu notification';
   const { text, html } = buildEmailBody(subject, payload);
+  const userId =
+    typeof payload.userId === 'string' ? payload.userId : await resolveUserIdByEmail(to);
 
   try {
     await fetch(`${base}/api/v1/internal/dispatch`, {
@@ -67,9 +87,12 @@ export async function dispatchNotification(
         'x-internal-key': key,
       },
       body: JSON.stringify({
-        channel: to ? 'email' : 'in_app',
+        channel: to ? (userId ? 'both' : 'email') : 'email',
         to,
+        userId,
         tenantId: payload.tenantId,
+        title: subject,
+        body: text.split('\n').slice(0, 3).join(' '),
         template: 'generic',
         payload: {
           subject,

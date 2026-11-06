@@ -36,7 +36,8 @@ npm run dev                # identity, platform, payroll, recruitment, web, …
 ```
 
 - Web: http://127.0.0.1:5173  
-- Mailpit: http://127.0.0.1:8025  
+- **Real email** (signup activation): [docs/real-email-setup.md](docs/real-email-setup.md) — configure `services/notification-service/.env` (Resend or SMTP).  
+- Optional fake inbox (Mailpit): http://127.0.0.1:8025 — only if using `SMTP_HOST=127.0.0.1` in notification `.env`.  
 - Demo users & flow: [services/platform-service/FLOW.txt](services/platform-service/FLOW.txt)  
 - Smoke check: `npm run check:dev`
 

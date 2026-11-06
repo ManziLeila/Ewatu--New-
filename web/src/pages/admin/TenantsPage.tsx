@@ -1,17 +1,21 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   approveTenant,
   archiveTenant,
+  purgeTenantPermanent,
   createTenant,
   fetchPendingTenants,
   fetchTenants,
   reactivateTenant,
   rejectTenant,
   suspendTenant,
+  updateTenant,
   type TenantRow,
 } from '../../api';
 import { StatusBadge } from './StatusBadge';
+import { TenantCrudActions } from './TenantCrudActions';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
 
@@ -24,8 +28,7 @@ export function TenantsPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -53,75 +56,51 @@ export function TenantsPage() {
     ev.preventDefault();
     setErr(null);
     try {
-      await createTenant({ name, slug, plan: 'starter', country: 'RW' });
+      const createdName = name.trim();
+      await createTenant({ name: createdName, slug, plan: 'starter', country: 'RW' });
       setName('');
       setSlug('');
       await load();
+      toast.success(`${createdName} created`);
       setTab('all');
     } catch (e) {
       setErr(parseError(e));
     }
   };
 
-  const onApprove = async (id: string) => {
+  const withTenantAction = async (id: string, action: () => Promise<void>, successMessage?: string) => {
+    setBusyId(id);
     setErr(null);
     try {
-      await approveTenant(id);
+      await action();
       await load();
+      if (successMessage) toast.success(successMessage);
     } catch (e) {
-      setErr(parseError(e));
+      const message = parseError(e);
+      setErr(message);
+      toast.error(message);
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const onReject = async (id: string) => {
-    setErr(null);
-    try {
-      await rejectTenant(id, rejectReason || undefined);
-      setRejectingId(null);
-      setRejectReason('');
-      await load();
-    } catch (e) {
-      setErr(parseError(e));
-    }
-  };
+  const tenantName = (id: string) =>
+    tenants?.find((row) => row.id === id)?.name ?? pending?.find((row) => row.id === id)?.name ?? 'Company';
 
-  const onSuspend = async (id: string) => {
-    setErr(null);
-    try {
-      await suspendTenant(id);
-      await load();
-    } catch (e) {
-      setErr(parseError(e));
-    }
-  };
-
-  const onReactivate = async (id: string) => {
-    setErr(null);
-    try {
-      await reactivateTenant(id);
-      await load();
-    } catch (e) {
-      setErr(parseError(e));
-    }
-  };
-
-  const onArchive = async (id: string, name: string) => {
-    if (
-      !confirm(
-        `Archive "${name}"? This blocks all further access for this company. Their data in every ` +
-          `service stays intact and this can be reversed later by an engineer, but not from this screen.`,
-      )
-    ) {
-      return;
-    }
-    setErr(null);
-    try {
-      await archiveTenant(id);
-      await load();
-    } catch (e) {
-      setErr(parseError(e));
-    }
-  };
+  const onApprove = (id: string) =>
+    withTenantAction(id, () => approveTenant(id), `${tenantName(id)} approved`);
+  const onReject = (id: string, reason?: string) =>
+    withTenantAction(id, () => rejectTenant(id, reason), `${tenantName(id)} rejected`);
+  const onSuspend = (id: string) =>
+    withTenantAction(id, () => suspendTenant(id), `${tenantName(id)} suspended`);
+  const onReactivate = (id: string) =>
+    withTenantAction(id, () => reactivateTenant(id), `${tenantName(id)} activated`);
+  const onArchive = (id: string) =>
+    withTenantAction(id, () => archiveTenant(id), `${tenantName(id)} archived`);
+  const onPurgePermanent = (id: string, confirmSlug: string) =>
+    withTenantAction(id, () => purgeTenantPermanent(id, confirmSlug), `${confirmSlug} permanently deleted`);
+  const onEditSave = (id: string, body: { name: string; plan: string; country: string }) =>
+    withTenantAction(id, () => updateTenant(id, body), `${body.name} updated`);
 
   return (
     <div className="adm-page">
@@ -199,42 +178,17 @@ export function TenantsPage() {
                     <td>{new Date(t.createdAt).toLocaleString()}</td>
                     <td>{t.emailVerifiedAt ? 'Yes' : 'No'}</td>
                     <td>
-                      <div className="admin__actions">
-                        <button type="button" className="btn btn--primary small" onClick={() => onApprove(t.id)}>
-                          Approve
-                        </button>
-                        {rejectingId === t.id ? (
-                          <span className="admin__reject-inline">
-                            <input
-                              className="auth-input"
-                              placeholder="Rejection reason (optional)"
-                              value={rejectReason}
-                              onChange={(e) => setRejectReason(e.target.value)}
-                            />
-                            <button type="button" className="btn small" onClick={() => onReject(t.id)}>
-                              Confirm reject
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn--ghost small"
-                              onClick={() => setRejectingId(null)}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn small"
-                            onClick={() => {
-                              setRejectingId(t.id);
-                              setRejectReason('');
-                            }}
-                          >
-                            Reject
-                          </button>
-                        )}
-                      </div>
+                      <TenantCrudActions
+                        tenant={t}
+                        busyId={busyId}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onSuspend={onSuspend}
+                        onReactivate={onReactivate}
+                        onArchive={onArchive}
+                        onPurgePermanent={onPurgePermanent}
+                        onEditSave={onEditSave}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -271,31 +225,17 @@ export function TenantsPage() {
                     <td>{t.plan ?? '—'}</td>
                     <td>{t.country ?? '—'}</td>
                     <td>
-                      <div className="admin__actions">
-                        {(t.status === 'ACTIVE' || t.status === 'TRIAL') && (
-                          <button type="button" className="btn small" onClick={() => onSuspend(t.id)}>
-                            Suspend
-                          </button>
-                        )}
-                        {t.status === 'SUSPENDED' && (
-                          <button
-                            type="button"
-                            className="btn btn--primary small"
-                            onClick={() => onReactivate(t.id)}
-                          >
-                            Activate
-                          </button>
-                        )}
-                        {t.status !== 'ARCHIVED' && (
-                          <button
-                            type="button"
-                            className="btn btn--danger small"
-                            onClick={() => onArchive(t.id, t.name)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
+                      <TenantCrudActions
+                        tenant={t}
+                        busyId={busyId}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onSuspend={onSuspend}
+                        onReactivate={onReactivate}
+                        onArchive={onArchive}
+                        onPurgePermanent={onPurgePermanent}
+                        onEditSave={onEditSave}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PublicNav } from '../components/PublicNav';
+import { useAppPreferences } from '../lib/app-preferences';
 import { LandingHeroVisual } from './LandingHeroVisual';
 import { HrShowcaseSection } from './HrShowcaseSection';
 import './landing-hero.css';
@@ -152,9 +153,11 @@ const trustItems = [
 ];
 
 export function LandingPage() {
+  const { resolvedTheme } = useAppPreferences();
+
   return (
     <div className="landing">
-      <PublicNav />
+      <PublicNav variant={resolvedTheme} />
 
       <section className="landing-hero">
         <div className="landing-hero__inner">

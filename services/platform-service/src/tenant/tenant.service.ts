@@ -9,6 +9,8 @@ import { Prisma, TenantStatus } from '@prisma/client';
 import { NotifyService } from '../notify/notify.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTenantDto } from './dtos/create-tenant.dto';
+import { UpdateTenantDto } from './dtos/update-tenant.dto';
+import { TenantPurgeOrchestrator } from './tenant-purge.orchestrator';
 
 @Injectable()
 export class TenantService {
@@ -17,6 +19,7 @@ export class TenantService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notify: NotifyService,
+    private readonly purgeOrchestrator: TenantPurgeOrchestrator,
   ) {}
 
   findById(id: string) {
@@ -163,6 +166,24 @@ export class TenantService {
     return this.prisma.tenant.update({ where: { id }, data: { status: 'ARCHIVED' } });
   }
 
+  /** Hard delete: purges tenant data in every service, then removes the platform tenant row. */
+  async purgePermanent(id: string, confirmSlug: string) {
+    const t = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tenant not found');
+    if (t.slug !== confirmSlug.trim().toLowerCase()) {
+      throw new BadRequestException('Confirmation slug does not match this company');
+    }
+    if (t.status !== 'ARCHIVED' && t.status !== 'REJECTED') {
+      throw new BadRequestException(
+        'Archive or reject the company before permanent delete',
+      );
+    }
+    const services = await this.purgeOrchestrator.purgeAllServices(id);
+    await this.prisma.tenant.delete({ where: { id } });
+    this.log.warn(`Permanently purged tenant ${t.slug} (${id})`);
+    return { id, slug: t.slug, purged: true, services };
+  }
+
   async markOwnerEmailVerified(tenantId: string) {
     try {
       return await this.prisma.tenant.update({
@@ -172,6 +193,32 @@ export class TenantService {
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
         throw new NotFoundException();
+      }
+      throw e;
+    }
+  }
+
+  async updateAdmin(id: string, dto: UpdateTenantDto) {
+    const t = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tenant not found');
+    if (t.status === 'ARCHIVED') {
+      throw new BadRequestException('Archived tenants cannot be edited');
+    }
+    if (!dto.name && !dto.plan && !dto.country) {
+      throw new BadRequestException('Nothing to update');
+    }
+    try {
+      return await this.prisma.tenant.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name } : {}),
+          ...(dto.plan !== undefined ? { plan: dto.plan } : {}),
+          ...(dto.country !== undefined ? { country: dto.country } : {}),
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+        throw new NotFoundException('Tenant not found');
       }
       throw e;
     }

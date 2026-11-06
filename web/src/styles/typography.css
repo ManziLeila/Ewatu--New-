@@ -189,7 +189,7 @@ textarea,
 }
 
 /* —— Links —— */
-a:not(.btn):not(.adm-nav__link):not(.pnav__link) {
+a:not(.btn):not(.adm-nav__link):not(.adm-sidebar__home):not(.pnav__link) {
   color: var(--color-link);
   font-weight: var(--font-medium);
 }

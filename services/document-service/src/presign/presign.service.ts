@@ -6,7 +6,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EwatuRole, type AuthUser } from '@ewatu/common-auth';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PresignUploadDto } from './dto/presign-upload.dto';
 
@@ -119,6 +125,35 @@ export class PresignService {
    *  callers that need to let a user actually view/download a stored file must ask for
    *  a signed GET URL here instead. `key` is the exact key as stored (already includes
    *  the `tenants/<id>/` prefix if the caller's own record has it baked in). */
+  async purgeTenantObjects(tenantId: string) {
+    const prefix = `tenants/${tenantId}/`;
+    let removed = 0;
+    let continuationToken: string | undefined;
+    do {
+      const list = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      const objects = (list.Contents ?? [])
+        .map((o) => (o.Key ? { Key: o.Key } : null))
+        .filter((o): o is { Key: string } => Boolean(o));
+      if (objects.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: objects },
+          }),
+        );
+        removed += objects.length;
+      }
+      continuationToken = list.NextContinuationToken;
+    } while (continuationToken);
+    return { tenantId, objectsRemoved: removed };
+  }
+
   async createPresignedGetForKey(key: string, expiresIn = 900): Promise<{ downloadUrl: string }> {
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
     try {

@@ -144,7 +144,7 @@ export async function dispatchNotification(
         'x-internal-key': key,
       },
       body: JSON.stringify({
-        channel: to && userId ? 'both' : to ? 'email' : userId ? 'in_app' : 'email',
+        channel: to ? (userId ? 'both' : 'email') : 'email',
         to,
         userId,
         tenantId: payload.tenantId,

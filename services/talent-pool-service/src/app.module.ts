@@ -6,12 +6,14 @@ import { HealthModule } from './health/health.module';
 import { PoolsModule } from './pools/pools.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonAuthModule,
     PrismaModule,
+    InternalModule,
     HealthModule,
     PoolsModule,
     ProfilesModule,

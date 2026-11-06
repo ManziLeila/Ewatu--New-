@@ -1,10 +1,17 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   approveTenant,
+  archiveTenant,
+  purgeTenantPermanent,
   fetchMyTenant,
   fetchPendingTenants,
   fetchTenants,
+  reactivateTenant,
+  rejectTenant,
+  suspendTenant,
+  updateTenant,
   type TenantRow,
 } from '../../api';
 import {
@@ -44,6 +51,7 @@ import {
 } from '../../payrollApi';
 import { authFetch } from '../../lib/http';
 import { StatusBadge } from './StatusBadge';
+import { TenantCrudActions } from './TenantCrudActions';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
 import { hasAnyRole, isCompanyAdminOnly, isExecutiveLeader } from '../../lib/roles';
@@ -1559,12 +1567,30 @@ function CalendarCard() {
 
 // ── Super admin dashboard ─────────────────────────────────────────────────────
 
-function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
+function SuperDashboard({
+  tenants,
+  pending,
+  busyId,
+  err,
+  onApprove,
+  onReject,
+  onSuspend,
+  onReactivate,
+  onArchive,
+  onPurgePermanent,
+  onEditSave,
+}: {
   tenants: TenantRow[];
   pending: TenantRow[];
-  onApprove: (id: string) => void;
-  approving: string | null;
+  busyId: string | null;
   err: string | null;
+  onApprove: (id: string) => void | Promise<void>;
+  onReject: (id: string, reason?: string) => void | Promise<void>;
+  onSuspend: (id: string) => void | Promise<void>;
+  onReactivate: (id: string) => void | Promise<void>;
+  onArchive: (id: string) => void | Promise<void>;
+  onPurgePermanent: (id: string, confirmSlug: string) => void | Promise<void>;
+  onEditSave: (id: string, body: { name: string; plan: string; country: string }) => void | Promise<void>;
 }) {
   const active = tenants.filter(t => t.status === 'ACTIVE').length;
   const rejected = tenants.filter(t => t.status === 'REJECTED').length;
@@ -1583,7 +1609,12 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
           <h1 className="dash-welcome__greeting">Platform overview</h1>
           <p className="dash-welcome__sub">Manage subscribed companies, approvals, and platform health.</p>
         </div>
-        <div className="dash-welcome__date">{todayStr}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+          <div className="dash-welcome__date">{todayStr}</div>
+          <Link to="/platform/tenants" className="btn btn--primary small">
+            Create tenant
+          </Link>
+        </div>
       </div>
 
       {err && <div className="alert alert--err" role="alert" style={{ marginBottom: '1rem' }}>{err}</div>}
@@ -1610,7 +1641,21 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
                     <code>{t.slug}</code> · registered {new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </div>
                 </div>
-                <StatusBadge status={t.status} />
+                <div className="stat-item__aside">
+                  <StatusBadge status={t.status} />
+                  <TenantCrudActions
+                    tenant={t}
+                    busyId={busyId}
+                    compact
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    onSuspend={onSuspend}
+                    onReactivate={onReactivate}
+                    onArchive={onArchive}
+                    onPurgePermanent={onPurgePermanent}
+                    onEditSave={onEditSave}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -1633,16 +1678,20 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
                     {t.emailVerifiedAt ? ' · email verified' : ' · email not verified'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="stat-item__aside">
                   <StatusBadge status={t.status} />
-                  <button
-                    type="button"
-                    className="btn btn--primary small"
-                    disabled={approving === t.id}
-                    onClick={() => onApprove(t.id)}
-                  >
-                    {approving === t.id ? '…' : 'Approve'}
-                  </button>
+                  <TenantCrudActions
+                    tenant={t}
+                    busyId={busyId}
+                    compact
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    onSuspend={onSuspend}
+                    onReactivate={onReactivate}
+                    onArchive={onArchive}
+                    onPurgePermanent={onPurgePermanent}
+                    onEditSave={onEditSave}
+                  />
                 </div>
               </div>
             ))}
@@ -1697,7 +1746,7 @@ export function AdminOverviewPage() {
   const [myTenant, setMyTenant] = useState<TenantRow | null | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [approving, setApproving] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -1723,18 +1772,38 @@ export function AdminOverviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const onQuickApprove = async (id: string) => {
-    setApproving(id);
+  const withTenantAction = async (id: string, action: () => Promise<void>, successMessage?: string) => {
+    setBusyId(id);
     setErr(null);
     try {
-      await approveTenant(id);
+      await action();
       await load();
+      if (successMessage) toast.success(successMessage);
     } catch (e) {
-      setErr(parseError(e));
+      const message = parseError(e);
+      setErr(message);
+      toast.error(message);
     } finally {
-      setApproving(null);
+      setBusyId(null);
     }
   };
+
+  const tenantName = (id: string) => tenants?.find((row) => row.id === id)?.name ?? 'Company';
+
+  const onApprove = (id: string) =>
+    withTenantAction(id, () => approveTenant(id), `${tenantName(id)} approved`);
+  const onReject = (id: string, reason?: string) =>
+    withTenantAction(id, () => rejectTenant(id, reason), `${tenantName(id)} rejected`);
+  const onSuspend = (id: string) =>
+    withTenantAction(id, () => suspendTenant(id), `${tenantName(id)} suspended`);
+  const onReactivate = (id: string) =>
+    withTenantAction(id, () => reactivateTenant(id), `${tenantName(id)} activated`);
+  const onArchive = (id: string) =>
+    withTenantAction(id, () => archiveTenant(id), `${tenantName(id)} archived`);
+  const onPurgePermanent = (id: string, confirmSlug: string) =>
+    withTenantAction(id, () => purgeTenantPermanent(id, confirmSlug), `${confirmSlug} permanently deleted`);
+  const onEditSave = (id: string, body: { name: string; plan: string; country: string }) =>
+    withTenantAction(id, () => updateTenant(id, body), `${body.name} updated`);
 
   const displayName = me.username ?? me.email?.split('@')[0] ?? 'there';
 
@@ -1761,9 +1830,15 @@ export function AdminOverviewPage() {
         <SuperDashboard
           tenants={tenants}
           pending={pending}
-          onApprove={onQuickApprove}
-          approving={approving}
+          busyId={busyId}
           err={null}
+          onApprove={onApprove}
+          onReject={onReject}
+          onSuspend={onSuspend}
+          onReactivate={onReactivate}
+          onArchive={onArchive}
+          onPurgePermanent={onPurgePermanent}
+          onEditSave={onEditSave}
         />
       )}
 

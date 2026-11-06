@@ -219,13 +219,26 @@ export class AuthService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (user && !user.emailVerified) {
-      await this.sendEmailVerification(user.id);
+    const normalized = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: normalized } });
+    if (!user) {
+      return {
+        message:
+          'If an account exists and is not yet verified, we sent a new activation link to that email address.',
+      };
     }
+    if (user.emailVerified) {
+      return {
+        message: 'This email is already verified. You can sign in with your password.',
+        alreadyVerified: true,
+      };
+    }
+    const { sent } = await this.sendEmailVerification(user.id);
     return {
-      message:
-        'If an account exists and is not yet verified, we sent a new activation link to that email address.',
+      message: sent
+        ? 'We sent a new activation link. Open the latest email only — older links stop working after you resend.'
+        : 'We could not send email right now. Check that notification-service is running and try again in a moment.',
+      sent,
     };
   }
 
@@ -240,9 +253,12 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Invalid or expired verification link');
     }
+    if (user.emailVerified) {
+      return { verified: true, alreadyVerified: true };
+    }
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { emailVerified: true, emailVerificationToken: null },
+      data: { emailVerified: true },
     });
     if (user.tenantId) {
       await this.notifyPlatformEmailVerified(user.tenantId);
@@ -280,7 +296,7 @@ export class AuthService {
       (this.config.get<string>('CORS_ORIGIN') ?? 'http://localhost:5173').split(',')[0] ??
       'http://localhost:5173'
     ).trim();
-    return `${webOrigin}/verify-email?token=${rawToken}`;
+    return `${webOrigin}/verify-email?token=${encodeURIComponent(rawToken)}`;
   }
 
   async findUserIdByEmail(email: string): Promise<{ id: string; email: string } | null> {
@@ -290,6 +306,16 @@ export class AuthService {
       select: { id: true, email: true },
     });
     return user ?? null;
+  }
+
+  async findUserById(userId: string): Promise<{ id: string; email: string } | null> {
+    if (!userId?.trim()) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId.trim() },
+      select: { id: true, email: true, active: true },
+    });
+    if (!user?.active) return null;
+    return { id: user.id, email: user.email };
   }
 
   async findUsersByTenantRoles(
